@@ -1,0 +1,97 @@
+# Build artifacts
+dist/
+build/
+.next/
+out/
+.expo/
+*.dll.lib
+*.exp
+*.pdb
+
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.venv-lock/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local dev
+recon/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Turbo
+.turbo/
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.sqlite
+*.db
+
+# Mobile
+apps/mobile/.expo/
+apps/mobile/dist/
+
+# GitNexus
+.gitnexus/
+
+# Observability data
+prometheus-data/
+loki-data/
+alertmanager-data/
+pgdata/
+minio-data/
+redis-data/
+images-data/
+model-weights/
+
+# Model weights
+*.onnx
+*.pt
+*.pth
+
+# Python package build
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+
+# Virtual environments (repo-level)
+test-env/
+.opencode/
+
+# Editor/OS temp
+*~
+*.tmp
+*.temp

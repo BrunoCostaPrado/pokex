@@ -1,0 +1,60 @@
+error[E0404]: expected trait, found enum `libsql::Value`
+   --> src\db\commands.rs:409:26
+    |
+409 |     let params: Vec<&dyn libsql::Value> = values.iter().map(|v| v as &dyn libsql::Value).collect();
+    |                          ^^^^^^^^^^^^^ not a trait
+error[E0404]: expected trait, found enum `libsql::Value`
+   --> src\db\commands.rs:409:75
+    |
+409 |     let params: Vec<&dyn libsql::Value> = values.iter().map(|v| v as &dyn libsql::Value).collect();
+    |                                                                           ^^^^^^^^^^^^^ not a trait
+warning: unused imports: `Card` and `Set`
+ --> src\api\client.rs:1:25
+  |
+1 | use crate::db::models::{Card, CardImages, NewCard, NewSet, Set};
+  |                         ^^^^                               ^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+warning: unused import: `serde_json::Value`
+ --> src\db\commands.rs:4:5
+  |
+4 | use serde_json::Value;
+  |     ^^^^^^^^^^^^^^^^^
+warning: unused imports: `DateTime` and `Utc`
+ --> src\db\models.rs:1:14
+  |
+1 | use chrono::{DateTime, Utc};
+  |              ^^^^^^^^  ^^^
+warning: unused import: `uuid::Uuid`
+ --> src\db\models.rs:3:5
+  |
+3 | use uuid::Uuid;
+  |     ^^^^^^^^^^
+warning: unused imports: `ApiCard` and `ApiSet`
+ --> src\sync\manager.rs:1:26
+  |
+1 | use crate::api::client::{ApiCard, ApiClient, ApiSet};
+  |                          ^^^^^^^             ^^^^^^
+warning: unused import: `tauri::Manager`
+ --> src\lib.rs:7:5
+  |
+7 | use tauri::Manager;
+  |     ^^^^^^^^^^^^^^
+error[E0277]: the `?` operator can only be applied to values that implement `Try`
+   --> src\sync\manager.rs:151:20
+    |
+151 |       let mut rows = conn
+    |  ____________________^
+152 | |         .query(
+153 | |             "SELECT value FROM settings WHERE key = 'api_url'",
+154 | |             libsql::params![],
+155 | |         )?;
+    | |__________^ the `?` operator cannot be applied to type `impl std::future::Future<Output = Result<Rows, libsql::Error>>`
+    |
+    = help: the nightly-only, unstable trait `Try` is not implemented for `impl std::future::Future<Output = Result<Rows, libsql::Error>>`
+help: consider `await`ing on the `Future`
+    |
+155 |         ).await?;
+    |          ++++++
+cargo check: 3 errors, 6 warnings (1 crates)
+[full output: "$HOME/AppData/Local/rtk/tee/1790193813_cargo_check.log"]

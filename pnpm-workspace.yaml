@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  '@biomejs/biome': true
+  '@swc/core': true
+  esbuild: true
+  msw: true

@@ -1,0 +1,106 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# GitHub
+.github/
+
+# Dependencies
+apps/web/node_modules/
+apps/desktop-mobile/node_modules/
+packages/*/node_modules/
+services/*/node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.expo/
+*.local
+
+# Python
+venv/
+.venv/
+**/venv/
+**/.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.prod.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+htmlcov/
+.tox/
+
+# Turbo
+.turbo/
+
+# Docker
+docker-compose.override.yml
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+docs/
+
+# Models/data
+*.onnx
+*.pt
+*.pth
+model/
+data/
+models/
+
+# Virtual environments (repo-level)
+test-env/
+.opencode/
+
+# Observability data
+prometheus-data/
+loki-data/
+alertmanager-data/
+pgdata/
+minio-data/
+redis-data/
+images-data/
+model-weights/
+
+# Misc
+*.tgz
+.cache/
+*~
+*.tmp
+*.temp
