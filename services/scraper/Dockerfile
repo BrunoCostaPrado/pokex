@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --no-cache --prefix=/install -r pyproject.toml
 
 # Runtime stage
-FROM python:3.12-alpine AS runner
+FROM python:3.14-alpine AS runner
 WORKDIR /app
 
 # Install runtime dependencies and create user in single layer
