@@ -46,8 +46,8 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3
       wouter:
-        specifier: ^3.3.5
-        version: 3.11.0(react@19.3.0)
+        specifier: ^3.11.1
+        version: 3.11.1(react@19.3.0)
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4
@@ -2676,8 +2676,8 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
-  wouter@3.11.0:
-    resolution: {integrity: sha512-xyMLHhytdGhIjXVRcSjeYbXd7TR1lrxVTPLGBWmmyW52ZuWVQ1jXmsgoJ4G5s4tjloJCq7h4i2eREljWUQ4+/A==}
+  wouter@3.11.1:
+    resolution: {integrity: sha512-HodhSFaJTnASOFifOKl+eFXmwDMsEkxb9lO0r1GGUptm1nsWxJfpf/PThCUI4GMHw5ANFMzZAycZgmW7T2Nf+g==}
     peerDependencies:
       react: '>=16.8.0'
 
@@ -5092,7 +5092,7 @@ snapshots:
       siginfo: 2.0.0
       stackback: 0.0.2
 
-  wouter@3.11.0(react@19.3.0):
+  wouter@3.11.1(react@19.3.0):
     dependencies:
       react: 19.3.0
       regexparam: 3.0.0
