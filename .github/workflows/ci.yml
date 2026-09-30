@@ -48,7 +48,7 @@ jobs:
       - uses: astral-sh/setup-uv@v4
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          enable-cache: false
 
       - name: Cache uv
         id: uv-cache
@@ -127,7 +127,7 @@ jobs:
         if: matrix.target == 'test-python'
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          enable-cache: false
 
       - uses: actions/cache@v4
         if: matrix.target == 'test-python'
@@ -219,7 +219,7 @@ jobs:
       - uses: astral-sh/setup-uv@v4
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          enable-cache: false
 
       - uses: actions/cache@v4
         id: uv-restore
