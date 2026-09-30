@@ -11,9 +11,10 @@ interface SetData {
 
 interface SetsListProps {
   fetchSets: (skip?: number, limit?: number) => Promise<SetData[]>
+  LinkComponent?: React.ComponentType<{ to: string; children: React.ReactNode }>
 }
 
-export function SetsList({ fetchSets }: SetsListProps) {
+export function SetsList({ fetchSets, LinkComponent }: SetsListProps) {
   const {
     data: sets,
     isLoading,
@@ -29,7 +30,7 @@ export function SetsList({ fetchSets }: SetsListProps) {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Pokémon TCG Sets</h1>
-      <CardGrid cards={sets ?? []} />
+      <CardGrid cards={sets ?? []} LinkComponent={LinkComponent} />
     </div>
   )
 }
@@ -39,11 +40,7 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({ message = "Loading..." }: LoadingStateProps) {
-  return (
-    <div className="text-center py-8 text-[var(--color-text-muted)]">
-      {message}
-    </div>
-  )
+  return <div className="text-center py-8 text-[var(--color-text-muted)]">{message}</div>
 }
 
 interface ErrorStateProps {
@@ -51,9 +48,5 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ message = "Failed to load" }: ErrorStateProps) {
-  return (
-    <div className="text-center py-8 text-[var(--color-text-muted)]">
-      {message}
-    </div>
-  )
+  return <div className="text-center py-8 text-[var(--color-text-muted)]">{message}</div>
 }

@@ -28,18 +28,23 @@ export function useTauriQuery<TData, TError = Error>(
 
 export function useTauriMutation<TData, TVariables, TError = Error>(
   command: string,
-  options?: Omit<UseMutationOptions<TData, TError, TVariables>, "mutationFn">
+  options?: Omit<UseMutationOptions<TData, TError, TVariables>, "mutationFn"> & {
+    invalidateKeys?: string[][]
+  }
 ) {
+  const queryClient = useQueryClient()
+  const { invalidateKeys, onSuccess, ...restOptions } = options ?? {}
   return useMutation<TData, TError, TVariables>({
     mutationFn: (variables: TVariables) =>
       tauriInvoke<TData>(command, variables as TauriCommandArgs),
-    ...options,
+    onSuccess: (...args) => {
+      for (const key of invalidateKeys ?? []) {
+        queryClient.invalidateQueries({ queryKey: key })
+      }
+      onSuccess?.(...args)
+    },
+    ...restOptions,
   })
-}
-
-export function useTauriInvalidate(key: string[]) {
-  const _queryClient = useQueryClient()
-  return () => _queryClient.invalidateQueries({ queryKey: key })
 }
 
 export async function tauriCommand<T>(command: string, args?: TauriCommandArgs): Promise<T> {

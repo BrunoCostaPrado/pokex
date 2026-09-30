@@ -1,6 +1,11 @@
 import { Collection } from "@pokex/ui"
+import { Link } from "react-router-dom"
 
 const BASE = "/api"
+
+function CollectionLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return <Link to={to}>{children}</Link>
+}
 
 async function fetchCollection() {
   const res = await fetch(`${BASE}/collection`)
@@ -9,5 +14,5 @@ async function fetchCollection() {
 }
 
 export default function CollectionPage() {
-  return <Collection fetchCollection={fetchCollection} />
+  return <Collection fetchCollection={fetchCollection} LinkComponent={CollectionLink} />
 }

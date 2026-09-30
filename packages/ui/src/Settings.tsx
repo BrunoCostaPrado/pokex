@@ -9,9 +9,7 @@ export function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
     <div className="mb-8">
       <h2 className="text-lg font-semibold mb-4">{title}</h2>
-      <div className="bg-white rounded-lg border border-[var(--color-border)] p-4">
-        {children}
-      </div>
+      <div className="bg-white rounded-lg border border-[var(--color-border)] p-4">{children}</div>
     </div>
   )
 }
@@ -33,7 +31,7 @@ export function Toggle({ label, description, checked, onChange }: ToggleProps) {
       <input
         type="checkbox"
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
+        onChange={e => onChange(e.target.checked)}
         className="w-5 h-5 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)]"
       />
     </label>
@@ -48,15 +46,19 @@ interface SelectProps {
 }
 
 export function Select({ label, value, options, onChange }: SelectProps) {
+  const selectId = `select-${label.toLowerCase().replace(/\s+/g, "-")}`
   return (
     <div className="py-3">
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label htmlFor={selectId} className="block text-sm font-medium mb-1">
+        {label}
+      </label>
       <select
+        id={selectId}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value)}
         className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
       >
-        {options.map((opt) => (
+        {options.map(opt => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

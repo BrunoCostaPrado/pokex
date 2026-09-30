@@ -1,7 +1,11 @@
 import { CardDetail } from "@pokex/ui"
-import { useParams } from "wouter"
+import { Link, useParams } from "wouter"
 import { tauriCommand } from "../hooks/useTauriQuery"
 import type { Card } from "../types/tauri"
+
+function CardLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return <Link href={to}>{children}</Link>
+}
 
 export function CardDetailPage() {
   const params = useParams() as { id: string } | undefined
@@ -25,5 +29,5 @@ export function CardDetailPage() {
     }
   }
 
-  return <CardDetail fetchCard={fetchCard} cardId={id} />
+  return <CardDetail fetchCard={fetchCard} cardId={id} LinkComponent={CardLink} />
 }

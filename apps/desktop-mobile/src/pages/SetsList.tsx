@@ -1,4 +1,4 @@
-import { CardGrid } from "@pokex/ui"
+import { CardGrid, ErrorState, LoadingState } from "@pokex/ui"
 import { Link } from "wouter"
 import { useTauriQuery } from "../hooks/useTauriQuery"
 import type { Set as TauriSet } from "../types/tauri"
@@ -21,30 +21,6 @@ export function SetsListPage() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Pokémon TCG Sets</h1>
       <CardGrid cards={sets ?? []} LinkComponent={SetLink} />
-    </div>
-  )
-}
-
-interface LoadingStateProps {
-  message?: string
-}
-
-function LoadingState({ message = "Loading..." }: LoadingStateProps) {
-  return (
-    <div className="text-center py-8 text-[var(--color-text-muted)]">
-      {message}
-    </div>
-  )
-}
-
-interface ErrorStateProps {
-  message?: string
-}
-
-function ErrorState({ message = "Failed to load" }: ErrorStateProps) {
-  return (
-    <div className="text-center py-8 text-[var(--color-text-muted)]">
-      {message}
     </div>
   )
 }

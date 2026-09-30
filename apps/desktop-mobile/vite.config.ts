@@ -1,10 +1,10 @@
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 import process from "node:process"
+import { fileURLToPath } from "node:url"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
 import { visualizer } from "rollup-plugin-visualizer"
+import { defineConfig } from "vite"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -12,7 +12,11 @@ const host = process.env.TAURI_DEV_HOST
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss(), mode === "analyze" && visualizer({ open: true, filename: "dist/stats.html" })].filter(Boolean),
+  plugins: [
+    react(),
+    tailwindcss(),
+    mode === "analyze" && visualizer({ open: true, filename: "dist/stats.html" }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@pokex/ui": path.resolve(__dirname, "../../packages/ui/src"),
@@ -47,7 +51,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
+          vendor: ["react", "react-dom"],
           query: ["@tanstack/react-query"],
           ui: ["@pokex/ui"],
         },

@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "react-router-dom"
+import { ErrorState, LoadingState } from "./SetsList"
+
+interface LinkComponentProps {
+  to: string
+  children: React.ReactNode
+  className?: string
+}
 
 interface CardData {
   id: string
@@ -35,10 +41,15 @@ interface CardData {
 interface CardDetailProps {
   fetchCard: (id: string) => Promise<CardData>
   cardId: string
+  LinkComponent?: React.ComponentType<LinkComponentProps>
 }
 
-export function CardDetail({ fetchCard, cardId }: CardDetailProps) {
-  const { data: card, isLoading, error } = useQuery({
+export function CardDetail({ fetchCard, cardId, LinkComponent }: CardDetailProps) {
+  const {
+    data: card,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["card", cardId],
     queryFn: () => fetchCard(cardId),
   })
@@ -47,16 +58,31 @@ export function CardDetail({ fetchCard, cardId }: CardDetailProps) {
   if (error) return <ErrorState message="Failed to load card details" />
   if (!card) return <ErrorState message="Card not found" />
 
+  const BackLink =
+    LinkComponent ??
+    ((props: LinkComponentProps) => (
+      <a href={props.to} className={props.className}>
+        {props.children}
+      </a>
+    ))
+
   return (
     <div>
       <div className="mb-6">
-        <Link to="/sets" className="text-[var(--color-text-muted)] hover:underline mb-4 inline-block">
+        <BackLink
+          to="/sets"
+          className="text-[var(--color-text-muted)] hover:underline mb-4 inline-block"
+        >
           ← Back to Sets
-        </Link>
+        </BackLink>
         <div className="flex flex-col md:flex-row gap-6">
           <div className="md:w-1/3">
             {card.images?.large && (
-              <img src={card.images.large} alt={card.name} className="w-full rounded-lg shadow-lg" />
+              <img
+                src={card.images.large}
+                alt={card.name}
+                className="w-full rounded-lg shadow-lg"
+              />
             )}
           </div>
           <div className="md:w-2/3">
@@ -69,29 +95,37 @@ export function CardDetail({ fetchCard, cardId }: CardDetailProps) {
                 {card.rarity ?? "Common"}
               </span>
               {card.set && (
-                <Link to={`/sets/${card.set.id}`} className="px-2 py-1 bg-[var(--color-border)] rounded text-sm hover:bg-[var(--color-border)]/80">
+                <BackLink
+                  to={`/sets/${card.set.id}`}
+                  className="px-2 py-1 bg-[var(--color-border)] rounded text-sm hover:bg-[var(--color-border)]/80"
+                >
                   {card.set.name}
-                </Link>
+                </BackLink>
               )}
             </div>
             {card.hp && <p className="mt-2 text-[var(--color-text-muted)]">HP: {card.hp}</p>}
-            {card.types?.length && (
+            {card.types && card.types.length > 0 && (
               <p className="mt-2 text-[var(--color-text-muted)]">Types: {card.types.join(", ")}</p>
             )}
           </div>
         </div>
       </div>
 
-      {card.attacks?.length && (
+      {card.attacks && card.attacks.length > 0 && (
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-4">Attacks</h2>
-          {card.attacks.map((attack, idx) => (
-            <div key={idx} className="bg-white border border-[var(--color-border)] rounded-lg p-4 mb-2">
+          {card.attacks.map(attack => (
+            <div
+              key={attack.name}
+              className="bg-white border border-[var(--color-border)] rounded-lg p-4 mb-2"
+            >
               <div className="flex justify-between mb-2">
                 <h3 className="font-medium">{attack.name}</h3>
                 <span className="text-[var(--color-text-muted)]">{attack.damage}</span>
               </div>
-              <p className="text-sm text-[var(--color-text-muted)]">Cost: {attack.cost.join(", ")}</p>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Cost: {attack.cost.join(", ")}
+              </p>
               <p className="text-sm mt-1">{attack.text}</p>
             </div>
           ))}
@@ -102,43 +136,29 @@ export function CardDetail({ fetchCard, cardId }: CardDetailProps) {
         <div>
           <h2 className="text-xl font-bold mb-4">Weaknesses & Resistances</h2>
           <div className="grid grid-cols-2 gap-4">
-            {card.weaknesses?.map((w, idx) => (
-              <div key={idx} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-800">Weakness: {w.type} ({w.value})</p>
+            {card.weaknesses?.map(w => (
+              <div
+                key={`weakness-${w.type}-${w.value}`}
+                className="bg-red-50 border border-red-200 rounded-lg p-3"
+              >
+                <p className="text-sm text-red-800">
+                  Weakness: {w.type} ({w.value})
+                </p>
               </div>
             ))}
-            {card.resistances?.map((r, idx) => (
-              <div key={idx} className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <p className="text-sm text-green-800">Resistance: {r.type} ({r.value})</p>
+            {card.resistances?.map(r => (
+              <div
+                key={`resistance-${r.type}-${r.value}`}
+                className="bg-green-50 border border-green-200 rounded-lg p-3"
+              >
+                <p className="text-sm text-green-800">
+                  Resistance: {r.type} ({r.value})
+                </p>
               </div>
             ))}
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-interface LoadingStateProps {
-  message?: string
-}
-
-export function LoadingState({ message = "Loading..." }: LoadingStateProps) {
-  return (
-    <div className="text-center py-8 text-[var(--color-text-muted)]">
-      {message}
-    </div>
-  )
-}
-
-interface ErrorStateProps {
-  message?: string
-}
-
-export function ErrorState({ message = "Failed to load" }: ErrorStateProps) {
-  return (
-    <div className="text-center py-8 text-[var(--color-text-muted)]">
-      {message}
     </div>
   )
 }

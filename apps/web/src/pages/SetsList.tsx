@@ -1,6 +1,11 @@
 import { SetsList } from "@pokex/ui"
+import { Link } from "react-router-dom"
 
 const BASE = "/api"
+
+function SetLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return <Link to={to}>{children}</Link>
+}
 
 async function fetchSets(skip = 0, limit = 100) {
   const res = await fetch(`${BASE}/sets?skip=${skip}&limit=${limit}`)
@@ -9,5 +14,5 @@ async function fetchSets(skip = 0, limit = 100) {
 }
 
 export default function SetsListPage() {
-  return <SetsList fetchSets={fetchSets} />
+  return <SetsList fetchSets={fetchSets} LinkComponent={SetLink} />
 }

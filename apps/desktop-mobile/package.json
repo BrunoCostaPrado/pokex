@@ -9,7 +9,8 @@
     "dev": "vite",
     "lint": "biome check --write .",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@pokex/ui": "workspace:*",

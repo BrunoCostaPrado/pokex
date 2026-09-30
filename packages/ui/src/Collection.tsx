@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "react-router-dom"
 import { CardGrid } from "./CardGrid"
+import { ErrorState, LoadingState } from "./SetsList"
+
+interface LinkComponentProps {
+  to: string
+  children: React.ReactNode
+  className?: string
+}
 
 interface CardData {
   id: string
@@ -19,10 +25,15 @@ interface CardData {
 
 interface CollectionProps {
   fetchCollection: () => Promise<CardData[]>
+  LinkComponent?: React.ComponentType<LinkComponentProps>
 }
 
-export function Collection({ fetchCollection }: CollectionProps) {
-  const { data: cards, isLoading, error } = useQuery({
+export function Collection({ fetchCollection, LinkComponent }: CollectionProps) {
+  const {
+    data: cards,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["collection"],
     queryFn: fetchCollection,
   })
@@ -30,43 +41,27 @@ export function Collection({ fetchCollection }: CollectionProps) {
   if (isLoading) return <LoadingState message="Loading collection..." />
   if (error) return <ErrorState message="Failed to load collection" />
 
+  const BrowseLink =
+    LinkComponent ??
+    ((props: LinkComponentProps) => (
+      <a href={props.to} className={props.className}>
+        {props.children}
+      </a>
+    ))
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">My Collection</h1>
       {cards?.length === 0 ? (
         <div className="text-center py-12 text-[var(--color-text-muted)]">
           <p className="text-xl mb-2">No cards in collection yet</p>
-          <Link to="/sets" className="text-[var(--color-primary)] hover:underline">
+          <BrowseLink to="/sets" className="text-[var(--color-primary)] hover:underline">
             Browse sets to add cards
-          </Link>
+          </BrowseLink>
         </div>
       ) : (
-        <CardGrid cards={cards ?? []} LinkComponent={Link} />
+        <CardGrid cards={cards ?? []} LinkComponent={LinkComponent} />
       )}
-    </div>
-  )
-}
-
-interface LoadingStateProps {
-  message?: string
-}
-
-export function LoadingState({ message = "Loading..." }: LoadingStateProps) {
-  return (
-    <div className="text-center py-8 text-[var(--color-text-muted)]">
-      {message}
-    </div>
-  )
-}
-
-interface ErrorStateProps {
-  message?: string
-}
-
-export function ErrorState({ message = "Failed to load" }: ErrorStateProps) {
-  return (
-    <div className="text-center py-8 text-[var(--color-text-muted)]">
-      {message}
     </div>
   )
 }

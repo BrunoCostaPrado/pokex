@@ -1,15 +1,22 @@
 import { Collection } from "@pokex/ui"
+import { Link } from "wouter"
 import { tauriCommand } from "../hooks/useTauriQuery"
 import type { Card, CollectionCard } from "../types/tauri"
 
+function CollectionLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return <Link href={to}>{children}</Link>
+}
+
 export function CollectionPage() {
   const fetchCollection = async () => {
-    const collectionCards = await tauriCommand<CollectionCard[]>("db_collection_get")
-    const allCards = await tauriCommand<Card[]>("db_get_cards", { limit: 1000, offset: 0 })
-    const cardsMap = new Map<string, Card>(allCards.map((c) => [c.id, c]))
+    const [collectionCards, allCards] = await Promise.all([
+      tauriCommand<CollectionCard[]>("db_collection_get"),
+      tauriCommand<Card[]>("db_get_cards", { limit: 1000, offset: 0 }),
+    ])
+    const cardsMap = new Map<string, Card>(allCards.map(c => [c.id, c]))
 
     return collectionCards
-      .map((cc) => {
+      .map(cc => {
         const card = cardsMap.get(cc.card_id)
         if (!card) return null
         return {
@@ -26,5 +33,5 @@ export function CollectionPage() {
       .filter((c): c is NonNullable<typeof c> => c !== null)
   }
 
-  return <Collection fetchCollection={fetchCollection} />
+  return <Collection fetchCollection={fetchCollection} LinkComponent={CollectionLink} />
 }
