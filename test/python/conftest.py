@@ -130,10 +130,10 @@ class MockType:
 
 # Make Mapped subscriptable (Mapped[str], Mapped[int], etc.)
 class MockMapped:
-    def __getitem__(self, item):
+    def __class_getitem__(cls, item):
         return item
 
-sqlalchemy.orm.Mapped = MockMapped()
+sqlalchemy.orm.Mapped = MockMapped
 sqlalchemy.JSON = MockType
 sqlalchemy.DateTime = MockType
 sqlalchemy.Float = MockType
