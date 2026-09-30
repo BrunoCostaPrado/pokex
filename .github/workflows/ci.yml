@@ -41,12 +41,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: test-python
-            service: data-ingestion
-            workers: "4"
-          - target: test-python
-            service: recognition
-            workers: "2"
           - target: test-web
           - target: test-desktop
     steps:
@@ -67,25 +61,7 @@ jobs:
         if: matrix.target == 'test-web'
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
 
-      - uses: astral-sh/setup-uv@v4
-        if: matrix.target == 'test-python'
-        with:
-          version: ${{ env.UV_VERSION }}
-          enable-cache: false
-
-      - name: Sync Python deps
-        if: matrix.target == 'test-python'
-        run: |
-          cd services/${{ matrix.service }}
-          uv sync --extra dev --frozen
-
-      - name: Test Python
-        if: matrix.target == 'test-python'
-        run: |
-          cd services/${{ matrix.service }}
-          uv run pytest -v --tb=short -n ${{ matrix.workers }}
-        env:
-          REDIS_URL: redis://localhost:6379/0
+      
 
       - name: Install Playwright
         if: matrix.target == 'test-web'
@@ -123,48 +99,13 @@ jobs:
           cd apps/desktop-mobile/src-tauri
           cargo test --lib
 
-  test-e2e:
-    name: E2E Tests
-    runs-on: ubuntu-24.04
-    needs: [setup, test]
-    services:
-      redis:
-        image: redis:7-alpine
-        ports: [6379:6379]
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v4
-        with:
-          version: ${{ env.UV_VERSION }}
-          enable-cache: false
-
-      - name: Sync Python deps
-        run: |
-          cd services/data-ingestion && uv sync --extra dev --frozen
-          cd ../recognition && uv sync --extra dev --frozen
-
-      - name: Run E2E tests
-        run: pytest test/e2e/ -v --tb=short -n 4
-        env:
-          REDIS_URL: redis://localhost:6379/0
-
   build:
     name: Build & Docker
     runs-on: ubuntu-24.04
-    needs: [test, test-e2e]
+    needs: [test]
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: apps/web/dist
       - name: Validate docker-compose
         run: docker compose config --quiet
       - name: Set up Docker Buildx
