@@ -222,7 +222,7 @@ jobs:
         id: uv-restore
         with:
           path: ~/.cache/uv
-          key: ${{ needs.setup.outputs.uv-cache-key }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('services/**/uv.lock') }}
           restore-keys: ${{ runner.os }}-uv-
           fail-on-cache-miss: false
 
