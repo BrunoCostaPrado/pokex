@@ -83,7 +83,7 @@ jobs:
         if: matrix.target == 'test-python'
         run: |
           cd services/${{ matrix.service }}
-          uv run pytest test/ -v --tb=short -n ${{ matrix.workers }}
+          uv run pytest -v --tb=short -n ${{ matrix.workers }}
         env:
           REDIS_URL: redis://localhost:6379/0
 
@@ -122,3 +122,53 @@ jobs:
         run: |
           cd apps/desktop-mobile/src-tauri
           cargo test --lib
+
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-24.04
+    needs: [setup, test]
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+
+      - name: Sync Python deps
+        run: |
+          cd services/data-ingestion && uv sync --extra dev --frozen
+          cd ../recognition && uv sync --extra dev --frozen
+
+      - name: Run E2E tests
+        run: pytest test/e2e/ -v --tb=short -n 4
+        env:
+          REDIS_URL: redis://localhost:6379/0
+
+  build:
+    name: Build & Docker
+    runs-on: ubuntu-24.04
+    needs: [test, test-e2e]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+      - name: Validate docker-compose
+        run: docker compose config --quiet
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker images (parallel)
+        run: |
+          docker buildx bake -f docker-bake.hcl
