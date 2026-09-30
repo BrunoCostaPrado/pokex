@@ -90,9 +90,6 @@ jobs:
           - target: test-python
             service: recognition
             workers: "2"
-          - target: test-python
-            service: scraper
-            workers: "4"
           - target: test-web
           - target: test-desktop
     steps:
@@ -233,7 +230,6 @@ jobs:
         run: |
           cd services/data-ingestion && uv sync --extra dev --frozen
           cd ../recognition && uv sync --extra dev --frozen
-          cd ../scraper && uv sync --extra dev --frozen
 
       - name: Run E2E tests
         run: pytest test/e2e/ -v --tb=short -n 4
