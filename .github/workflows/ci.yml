@@ -17,62 +17,19 @@ env:
 
 jobs:
   setup:
-    name: Setup & Cache
+    name: Setup
     runs-on: ubuntu-24.04
-    outputs:
-      pnpm-cache-key: ${{ steps.pnpm-cache.outputs.cache-primary-key }}
-      uv-cache-key: ${{ steps.uv-cache.outputs.cache-primary-key }}
-      cargo-cache-key: ${{ steps.cargo-cache.outputs.cache-primary-key }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Cache pnpm store
-        id: pnpm-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            apps/web/node_modules
-            ~/.local/share/pnpm/store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-
-
-      - uses: astral-sh/setup-uv@v4
-        with:
-          version: ${{ env.UV_VERSION }}
-          enable-cache: false
-
-      - name: Cache uv
-        id: uv-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('services/**/uv.lock') }}
-          restore-keys: ${{ runner.os }}-uv-
-          fail-on-cache-miss: false
-
-      - name: Cache cargo
-        id: cargo-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            apps/desktop-mobile/src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Install pnpm deps
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
-
       - name: Install Playwright
         run: pnpm --filter web exec playwright install --with-deps chromium
 
@@ -106,16 +63,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - uses: actions/cache@v4
-        if: matrix.target == 'test-web'
-        id: pnpm-restore
-        with:
-          path: |
-            apps/web/node_modules
-            ~/.local/share/pnpm/store
-          key: ${{ needs.setup.outputs.pnpm-cache-key }}
-          restore-keys: ${{ runner.os }}-pnpm-
-
       - name: Install pnpm deps
         if: matrix.target == 'test-web'
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
@@ -125,15 +72,6 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
-
-      - uses: actions/cache@v4
-        if: matrix.target == 'test-python'
-        id: uv-restore
-        with:
-          path: ~/.cache/uv
-          key: ${{ needs.setup.outputs.uv-cache-key }}
-          restore-keys: ${{ runner.os }}-uv-
-          fail-on-cache-miss: false
 
       - name: Sync Python deps
         if: matrix.target == 'test-python'
@@ -148,13 +86,6 @@ jobs:
           uv run pytest test/ -v --tb=short -n ${{ matrix.workers }}
         env:
           REDIS_URL: redis://localhost:6379/0
-
-      - uses: actions/cache@v4
-        if: matrix.target == 'test-web'
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-playwright-
 
       - name: Install Playwright
         if: matrix.target == 'test-web'
@@ -179,17 +110,6 @@ jobs:
         if: matrix.target == 'test-desktop'
         with:
           target: x86_64-unknown-linux-gnu
-
-      - uses: actions/cache@v4
-        if: matrix.target == 'test-desktop'
-        id: cargo-restore
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            apps/desktop-mobile/src-tauri/target
-          key: ${{ needs.setup.outputs.cargo-cache-key }}
 
       - name: Test Desktop
         if: matrix.target == 'test-desktop'
@@ -217,14 +137,6 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
-
-      - uses: actions/cache@v4
-        id: uv-restore
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('services/**/uv.lock') }}
-          restore-keys: ${{ runner.os }}-uv-
-          fail-on-cache-miss: false
 
       - name: Sync Python deps
         run: |
