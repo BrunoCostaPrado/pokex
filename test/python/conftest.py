@@ -78,7 +78,7 @@ def cache_response(
 
         return wrapper
 
-    return wrapper
+    return decorator
 
 
 # Create a simple mock engine and session maker that don't use MagicMock spec
@@ -195,6 +195,8 @@ sys.modules["numpy"].uint8 = "uint8"
 sys.modules["numpy"].float32 = "float32"
 sys.modules["numpy"].int32 = "int32"
 sys.modules["numpy"].dtype = MagicMock
+sys.modules["numpy"].random = ModuleType("numpy.random")
+sys.modules["numpy"].random.randint = MagicMock
 
 # Mock opencv for recognition tests
 cv2 = ModuleType("cv2")
@@ -202,6 +204,8 @@ cv2.imread = MagicMock
 cv2.imwrite = MagicMock
 cv2.resize = MagicMock
 cv2.cvtColor = MagicMock
+cv2.imencode = MagicMock
+cv2.rectangle = MagicMock
 cv2.COLOR_BGR2RGB = 4
 cv2.COLOR_BGR2GRAY = 6
 sys.modules["cv2"] = cv2
@@ -211,6 +215,8 @@ PIL = ModuleType("PIL")
 PIL.Image = ModuleType("PIL.Image")
 PIL.Image.open = MagicMock
 PIL.Image.fromarray = MagicMock
+PIL.Image.new = MagicMock
+PIL.Image.Image = MagicMock
 sys.modules["PIL"] = PIL
 sys.modules["PIL.Image"] = PIL.Image
 
@@ -316,6 +322,13 @@ class MockAPIRouter:
         def decorator(func):
             from starlette.routing import Route
             self.routes.append(Route(self.prefix + path, func, methods=["PUT"]))
+            return func
+        return decorator
+
+    def patch(self, path: str, *args, **kwargs):
+        def decorator(func):
+            from starlette.routing import Route
+            self.routes.append(Route(self.prefix + path, func, methods=["PATCH"]))
             return func
         return decorator
 
