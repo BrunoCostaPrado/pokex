@@ -8,11 +8,13 @@ RUN corepack enable
 # Copy all package files for proper workspace resolution
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/
+COPY apps/desktop-mobile/package.json apps/desktop-mobile/
 COPY packages/ui/package.json packages/ui/
 
 # Copy all source for workspace packages
 COPY packages/ui packages/ui
 COPY apps/web apps/web
+COPY apps/desktop-mobile apps/desktop-mobile
 
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \

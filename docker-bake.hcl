@@ -3,9 +3,9 @@ group "default" {
 }
 
 target "web" {
-  context = "./apps/web"
+  context = "."
   tags = ["pokex-web"]
-  dockerfile = "Dockerfile"
+  dockerfile = "apps/web/Dockerfile"
 }
 
 target "data-ingestion" {
