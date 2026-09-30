@@ -136,7 +136,8 @@ class MockType:
 # Make Mapped subscriptable (Mapped[str], Mapped[int], etc.)
 class MockMapped:
     def __class_getitem__(cls, item):
-        return item
+        # Return a MockType instance that can be used as type annotation
+        return MockType()
 
 sqlalchemy.orm.Mapped = MockMapped
 sqlalchemy.JSON = MockType
@@ -191,26 +192,43 @@ sys.modules["psycopg"] = ModuleType("psycopg")
 sys.modules["asyncpg"] = ModuleType("asyncpg")
 
 # Mock numpy for recognition tests running in data-ingestion context
-sys.modules["numpy"] = ModuleType("numpy")
-sys.modules["numpy"].ndarray = MagicMock
-sys.modules["numpy"].array = MagicMock
-sys.modules["numpy"].zeros = MagicMock
-sys.modules["numpy"].ones = MagicMock
-sys.modules["numpy"].uint8 = "uint8"
-sys.modules["numpy"].float32 = "float32"
-sys.modules["numpy"].int32 = "int32"
-sys.modules["numpy"].dtype = MagicMock
-sys.modules["numpy"].random = ModuleType("numpy.random")
-sys.modules["numpy"].random.randint = MagicMock
+import numpy as np
+numpy_mod = ModuleType("numpy")
+# Create a mock ndarray that supports basic operations
+class MockNDArray:
+    def __init__(self, shape=(480, 640, 3), dtype="uint8"):
+        self.shape = shape
+        self.dtype = dtype
+    def __getitem__(self, key):
+        return MockNDArray()
+    def __setitem__(self, key, value):
+        pass
+    def copy(self):
+        return MockNDArray(self.shape, self.dtype)
+
+numpy_mod.ndarray = MockNDArray
+numpy_mod.array = lambda *args, **kwargs: MockNDArray()
+numpy_mod.zeros = lambda *args, **kwargs: MockNDArray()
+numpy_mod.ones = lambda *args, **kwargs: MockNDArray()
+numpy_mod.uint8 = "uint8"
+numpy_mod.float32 = "float32"
+numpy_mod.int32 = "int32"
+numpy_mod.dtype = MagicMock
+# random module with randint that returns proper mock array
+numpy_random = ModuleType("numpy.random")
+numpy_random.randint = lambda *args, **kwargs: MockNDArray()
+numpy_mod.random = numpy_random
+sys.modules["numpy"] = numpy_mod
 
 # Mock opencv for recognition tests
 cv2 = ModuleType("cv2")
-cv2.imread = MagicMock
-cv2.imwrite = MagicMock
-cv2.resize = MagicMock
-cv2.cvtColor = MagicMock
-cv2.imencode = MagicMock
-cv2.rectangle = MagicMock
+# Mock functions that return mock arrays
+cv2.imread = lambda *args, **kwargs: MockNDArray()
+cv2.imwrite = lambda *args, **kwargs: True
+cv2.resize = lambda *args, **kwargs: MockNDArray()
+cv2.cvtColor = lambda *args, **kwargs: MockNDArray()
+cv2.imencode = lambda *args, **kwargs: (True, MockNDArray())
+cv2.rectangle = lambda *args, **kwargs: MockNDArray()
 cv2.COLOR_BGR2RGB = 4
 cv2.COLOR_BGR2GRAY = 6
 sys.modules["cv2"] = cv2
@@ -218,10 +236,19 @@ sys.modules["cv2"] = cv2
 # Mock PIL for recognition tests
 PIL = ModuleType("PIL")
 PIL.Image = ModuleType("PIL.Image")
-PIL.Image.open = MagicMock
-PIL.Image.fromarray = MagicMock
-PIL.Image.new = MagicMock
-PIL.Image.Image = MagicMock
+
+class MockPILImage:
+    def __init__(self, *args, **kwargs):
+        pass
+    def save(self, *args, **kwargs):
+        pass
+    def convert(self, *args, **kwargs):
+        return MockPILImage()
+
+PIL.Image.open = lambda *args, **kwargs: MockPILImage()
+PIL.Image.fromarray = lambda *args, **kwargs: MockPILImage()
+PIL.Image.new = lambda *args, **kwargs: MockPILImage()
+PIL.Image.Image = MockPILImage
 sys.modules["PIL"] = PIL
 sys.modules["PIL.Image"] = PIL.Image
 
