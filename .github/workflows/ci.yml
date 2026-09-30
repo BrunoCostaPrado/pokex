@@ -225,6 +225,7 @@ jobs:
           path: ~/.cache/uv
           key: ${{ needs.setup.outputs.uv-cache-key }}
           restore-keys: ${{ runner.os }}-uv-
+          fail-on-cache-miss: false
 
       - name: Sync Python deps
         run: |
