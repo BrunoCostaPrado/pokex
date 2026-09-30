@@ -143,35 +143,42 @@ CMD ["gunicorn", "app.main:app", "--workers", "4", \
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Enable pnpm
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@9 --activate
+# Enable corepack for pnpm
+RUN corepack enable
 
-# Copy workspace files for hoisting
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages/ui ./packages/ui
+# Copy all package files for proper workspace resolution
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json apps/web/
+COPY apps/desktop-mobile/package.json apps/desktop-mobile/
+COPY packages/ui/package.json packages/ui/
 
-# Install deps (hoisted)
-RUN pnpm install --frozen-lockfile --prefer-offline
+# Copy all source for workspace packages
+COPY packages/ui packages/ui
+COPY apps/web apps/web
+COPY apps/desktop-mobile apps/desktop-mobile
 
-# Copy web app
-COPY apps/web ./apps/web
-WORKDIR /app/apps/web
+# Install dependencies with cache mount
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm approve-builds @biomejs/biome @swc/core esbuild msw --yes && \
+    pnpm install --frozen-lockfile --prefer-offline
 
-# Build
-RUN pnpm run build
+# Build @pokex/ui first, then web
+RUN cd packages/ui && pnpm exec tsc && cd ../.. && pnpm run build --filter web
 
-# Runtime stage - nginx
+# Runtime stage
 FROM nginx:alpine AS runner
+WORKDIR /usr/share/nginx/html
 
 # Copy built assets
-COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/web/dist .
 
-# Nginx config for SPA
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config
+COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+# Non-root user (nginx user exists in nginx:alpine)
+USER nginx
+
+EXPOSE 3000
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
@@ -179,33 +186,35 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ```nginx
 server {
-    listen 80;
+    listen 3000;
     server_name localhost;
     root /usr/share/nginx/html;
     index index.html;
 
-    # SPA fallback
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # Static assets caching
-    location /assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # API proxy (if needed)
     location /api/ {
-        proxy_pass http://data-ingestion:8000;
+        proxy_pass http://data-ingestion:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    # Health check
-    location /health {
-        return 200 "healthy\n";
-        add_header Content-Type text/plain;
+    location /recognition/ {
+        proxy_pass http://recognition:8001/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 ```
@@ -377,10 +386,9 @@ group "default" {
 }
 
 target "web" {
-  context = "./apps/web"
+  context = "."
   tags = ["pokex-web"]
-  dockerfile = "Dockerfile"
-  platforms = ["linux/amd64", "linux/arm64"]
+  dockerfile = "apps/web/Dockerfile"
 }
 
 target "data-ingestion" {

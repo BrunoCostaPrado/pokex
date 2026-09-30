@@ -9,16 +9,16 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push/PR to `m
 │   Push/PR   │
 └──────┬──────┘
        ▼
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐     ┌───────────┐
-│   Setup     │────►│    Test      │────►│  Test E2E   │────►│   Build   │
-│  & Cache    │     │  (Matrix)    │     │  (Redis)    │     │  & Docker │
-└─────────────┘     └──────────────┘     └─────────────┘     └───────────┘
-      │                    │                   │                   │
-      ▼                    ▼                   ▼                   ▼
-- Checkout            - Python (3 svc)       - Full stack       - Docker images
-- pnpm/uv/cargo       - Web (Vitest)         - Cache invalid.   - Push to GHCR
-- Cache deps          - Desktop (cargo)      - Sync flows       - Multi-platform
-- Install Playwright                                        (main branch only)
+┌─────────────┐     ┌──────────────┐     ┌───────────┐
+│   Setup     │────►│    Test      │────►│  Build    │
+│  & Cache    │     │  (Matrix)    │     │ & Docker  │
+└─────────────┘     └──────────────┘     └───────────┘
+      │                   │                   │
+      ▼                   ▼                   ▼
+- Checkout            - Web (Vitest)         - Docker images
+- pnpm/uv/cargo       - Desktop (cargo)      - Push to GHCR
+- Cache deps                                    - Multi-platform
+- Install Playwright                            (main branch only)
 ```
 
 ---
@@ -55,21 +55,10 @@ Cache keys:
 Runs: `ubuntu-latest` (parallel, `fail-fast: false`)  
 Needs: `setup`
 
-| Matrix Entry | Target | Service | Workers | Steps |
-|--------------|--------|---------|---------|-------|
-| 1 | `test-python` | data-ingestion | 4 | uv sync → pytest |
-| 2 | `test-python` | recognition | 2 | uv sync → pytest |
-| 3 | `test-python` | scraper | 4 | uv sync → pytest |
-| 4 | `test-web` | — | — | pnpm install → playwright install → vitest → build |
-| 5 | `test-desktop` | — | — | rust-toolchain → cargo test --lib |
-
-Python test command:
-```bash
-cd services/${{ matrix.service }}
-uv run pytest test/ -v --tb=short -n ${{ matrix.workers }}
-env:
-  REDIS_URL: redis://localhost:6379/0
-```
+| Matrix Entry | Target | Steps |
+|--------------|--------|-------|
+| 1 | `test-web` | pnpm install → playwright install → vitest → build |
+| 2 | `test-desktop` | rust-toolchain → cargo test --lib |
 
 Web test command:
 ```bash
@@ -88,46 +77,15 @@ Each matrix entry restores relevant cache from `setup` outputs.
 
 ---
 
-### 3. E2E Tests (`test-e2e`)
+### 3. Build & Docker (`build`)
 
 Runs: `ubuntu-latest`  
-Needs: `[setup, test]` (runs after all unit tests pass)  
-Services: Redis container
-
-```yaml
-services:
-  redis:
-    image: redis:7-alpine
-    ports: [6379:6379]
-    options: --health-cmd "redis-cli ping" --health-interval 10s
-
-steps:
-  - Checkout
-  - setup-uv (with cache restore)
-  - Sync all 3 Python services (uv sync --extra dev --frozen)
-  - pytest test/e2e/ -v --tb=short -n 4
-  env:
-    REDIS_URL: redis://localhost:6379/0
-```
-
-What E2E tests cover:
-- Scraper → Data Ingestion → PostgreSQL write
-- Cache invalidation via Redis Pub/Sub
-- Web React Query invalidation
-- Desktop sync flow
-
----
-
-### 4. Build & Docker (`build`)
-
-Runs: `ubuntu-latest`  
-Needs: `[test, test-e2e]`  
+Needs: `[test]`  
 Condition: `github.ref == 'refs/heads/main'` (only on main branch)
 
 ```yaml
 steps:
   - Checkout
-  - Download web-dist artifact
   - docker compose config --quiet (validate)
   - docker/setup-buildx-action@v3
   - docker buildx bake -f docker-bake.hcl
@@ -190,8 +148,8 @@ winget install act
 
 # Run specific job
 act -j setup
-act -j test --matrix target:test-python,service:data-ingestion
 act -j test --matrix target:test-web
+act -j test --matrix target:test-desktop
 act -j build
 
 # Run full workflow (requires secrets)
@@ -203,6 +161,7 @@ act -s GHCR_TOKEN=your_token -s JUSTTCG_API_KEY=your_key
 - Service containers may not work identically
 - Cache actions don't persist between runs
 - `GHCR_TOKEN` push fails (expected — no registry auth)
+- Artifact upload fails (no ACTIONS_RUNTIME_TOKEN)
 
 ---
 
@@ -296,22 +255,17 @@ github.event.push/pull_request
               │ outputs: cache keys
               ▼
 ┌────────────────────────────┐
-│        TEST (5 parallel)   │
-├──────┬──────┬──────┬───────┤
-│Py-DI │Py-Rec│Py-Scr│ Web  │ Desktop │
-│ 4w   │ 2w   │ 4w   │      │         │
-└──┬───┴──┬───┴──┬───┴───┬──┴────┬───┘
-   │      │      │       │       │
-   ▼      ▼      ▼       ▼       ▼
-┌────────────────────────────┐
-│      TEST-E2E (1 job)      │
-│  Redis + full stack test   │
-└─────────────┬──────────────┘
-              │ (main branch only)
-              ▼
+│        TEST (2 parallel)   │
+├──────────┬─────────────────┤
+│   Web    │    Desktop      │
+│ (vitest) │  (cargo test)   │
+└────┬─────┴────────┬────────┘
+     │              │
+     ▼              ▼
 ┌────────────────────────────┐
 │       BUILD (1 job)        │
-│  docker buildx bake        │
+│    docker buildx bake      │
+│   (main branch only)       │
 └────────────────────────────┘
 ```
 
