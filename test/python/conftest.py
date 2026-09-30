@@ -78,21 +78,26 @@ def cache_response(
 
         return wrapper
 
-    return decorator
+    return wrapper
+
 
 # Create a simple mock engine and session maker that don't use MagicMock spec
 class MockEngine:
     pass
 
+
 class MockSessionMaker:
     def __call__(self, *args, **kwargs):
         return MagicMock()
 
+
 def mock_create_async_engine(*args, **kwargs):
     return MockEngine()
 
+
 def mock_async_sessionmaker(*args, **kwargs):
     return MockSessionMaker()
+
 
 # Create proper mock modules with submodules using real ModuleType
 sqlalchemy = ModuleType("sqlalchemy")
@@ -109,7 +114,6 @@ sqlalchemy.ext.asyncio.create_async_engine = mock_create_async_engine
 sqlalchemy.orm.select = MagicMock
 sqlalchemy.orm.declarative_base = MagicMock
 sqlalchemy.orm.DeclarativeBase = MagicMock
-sqlalchemy.orm.Mapped = lambda x: x  # pass through
 sqlalchemy.orm.mapped_column = lambda *args, **kwargs: None  # return None
 sqlalchemy.orm.relationship = lambda *args, **kwargs: None  # return None
 sqlalchemy.select = sqlalchemy.orm.select  # for "from sqlalchemy import select"
@@ -121,7 +125,15 @@ class MockType:
         pass
     def __call__(self, *args, **kwargs):
         return self
+    def __getitem__(self, item):
+        return self
 
+# Make Mapped subscriptable (Mapped[str], Mapped[int], etc.)
+class MockMapped:
+    def __getitem__(self, item):
+        return item
+
+sqlalchemy.orm.Mapped = MockMapped()
 sqlalchemy.JSON = MockType
 sqlalchemy.DateTime = MockType
 sqlalchemy.Float = MockType
@@ -173,6 +185,39 @@ sys.modules["redis.asyncio"] = redis.asyncio
 sys.modules["psycopg"] = ModuleType("psycopg")
 sys.modules["asyncpg"] = ModuleType("asyncpg")
 
+# Mock numpy for recognition tests running in data-ingestion context
+sys.modules["numpy"] = ModuleType("numpy")
+sys.modules["numpy"].ndarray = MagicMock
+sys.modules["numpy"].array = MagicMock
+sys.modules["numpy"].zeros = MagicMock
+sys.modules["numpy"].ones = MagicMock
+sys.modules["numpy"].uint8 = "uint8"
+sys.modules["numpy"].float32 = "float32"
+sys.modules["numpy"].int32 = "int32"
+sys.modules["numpy"].dtype = MagicMock
+
+# Mock opencv for recognition tests
+cv2 = ModuleType("cv2")
+cv2.imread = MagicMock
+cv2.imwrite = MagicMock
+cv2.resize = MagicMock
+cv2.cvtColor = MagicMock
+cv2.COLOR_BGR2RGB = 4
+cv2.COLOR_BGR2GRAY = 6
+sys.modules["cv2"] = cv2
+
+# Mock PIL for recognition tests
+PIL = ModuleType("PIL")
+PIL.Image = ModuleType("PIL.Image")
+PIL.Image.open = MagicMock
+PIL.Image.fromarray = MagicMock
+sys.modules["PIL"] = PIL
+sys.modules["PIL.Image"] = PIL.Image
+
+# Mock pytesseract for recognition tests
+sys.modules["pytesseract"] = ModuleType("pytesseract")
+sys.modules["pytesseract"].image_to_string = MagicMock
+
 # Mock boto3 and botocore for data-ingestion service
 sys.modules["boto3"] = ModuleType("boto3")
 sys.modules["boto3.client"] = MagicMock
@@ -186,26 +231,26 @@ def mock_create_app(
     title: str = "",
     description: str = "",
     version: str = "",
-    router = None,
-    lifespan = None,
-    settings_class = None,
+    router=None,
+    lifespan=None,
+    settings_class=None,
     health_check: bool = True,
     cache_middleware: bool = False,
     cache_control: str = "public, max-age=60, stale-while-revalidate=300",
 ):
     """Create a starlette app that mimics fastapi_factory.create_app behavior."""
-    
+
     async def health_check_endpoint(request):
         return JSONResponse({
             "status": "ok",
             "service": title.lower().replace(" ", "-"),
             "version": version
         })
-    
+
     routes = []
     if health_check:
         routes.append(Route("/health", health_check_endpoint, methods=["GET"]))
-    
+
     if router is not None:
         # Include router routes - router should have .routes attribute
         if hasattr(router, "routes"):
@@ -213,11 +258,11 @@ def mock_create_app(
         else:
             # Try to include as Mount
             routes.append(Mount("", app=router))
-    
+
     middleware = [
         Middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
     ]
-    
+
     app = RealStarlette(
         routes=routes,
         middleware=middleware,
@@ -252,35 +297,35 @@ class MockAPIRouter:
         self.routes = []
         self.prefix = ""
         self.tags = []
-    
+
     def get(self, path: str, *args, **kwargs):
         def decorator(func):
             from starlette.routing import Route
             self.routes.append(Route(self.prefix + path, func, methods=["GET"]))
             return func
         return decorator
-    
+
     def post(self, path: str, *args, **kwargs):
         def decorator(func):
             from starlette.routing import Route
             self.routes.append(Route(self.prefix + path, func, methods=["POST"]))
             return func
         return decorator
-    
+
     def put(self, path: str, *args, **kwargs):
         def decorator(func):
             from starlette.routing import Route
             self.routes.append(Route(self.prefix + path, func, methods=["PUT"]))
             return func
         return decorator
-    
+
     def delete(self, path: str, *args, **kwargs):
         def decorator(func):
             from starlette.routing import Route
             self.routes.append(Route(self.prefix + path, func, methods=["DELETE"]))
             return func
         return decorator
-    
+
     def include_router(self, other_router, *args, **kwargs):
         if hasattr(other_router, "routes"):
             self.routes.extend(other_router.routes)
@@ -302,13 +347,13 @@ class MockUploadFile:
         self.filename = filename
         self.content_type = content_type
         self._content = content
-    
+
     async def read(self):
         return self._content
-    
+
     async def seek(self, pos):
         pass
-    
+
     async def close(self):
         pass
 
