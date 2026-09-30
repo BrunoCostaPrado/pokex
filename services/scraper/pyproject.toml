@@ -26,6 +26,10 @@ dev = [
     "ruff==0.7.0",
     "mypy==1.13.0",
     "redis==5.0.1",
+    "numpy==1.26.4",
+    "opencv-python-headless==4.10.0.84",
+    "pillow==10.4.0",
+    "pytesseract==0.3.13",
 ]
 
 [tool.ruff]
@@ -47,5 +51,6 @@ include = ["scraper_app*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["../../test/python"]
 addopts = "-v --tb=short"

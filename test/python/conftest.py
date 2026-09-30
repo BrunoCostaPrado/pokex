@@ -100,6 +100,11 @@ def mock_async_sessionmaker(*args, **kwargs):
 
 
 # Create proper mock modules with submodules using real ModuleType
+# First, remove any existing sqlalchemy modules to ensure our mocks are used
+for mod_name in list(sys.modules.keys()):
+    if mod_name.startswith("sqlalchemy"):
+        del sys.modules[mod_name]
+
 sqlalchemy = ModuleType("sqlalchemy")
 sqlalchemy.ext = ModuleType("sqlalchemy.ext")
 sqlalchemy.ext.asyncio = ModuleType("sqlalchemy.ext.asyncio")
