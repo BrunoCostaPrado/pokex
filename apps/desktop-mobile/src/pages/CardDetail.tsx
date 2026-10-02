@@ -1,18 +1,14 @@
 import { CardDetail } from "@pokex/ui"
-import { Link, useParams } from "wouter"
-import { tauriCommand } from "../hooks/useTauriQuery"
+import { invoke } from "@tauri-apps/api/core"
+import { useParams } from "wouter"
 import type { Card } from "../types/tauri"
-
-function CardLink({ to, children }: { to: string; children: React.ReactNode }) {
-  return <Link href={to}>{children}</Link>
-}
 
 export function CardDetailPage() {
   const params = useParams() as { id: string } | undefined
   const id = params?.id ?? ""
 
   const fetchCard = async (cardId: string) => {
-    const card = await tauriCommand<Card | null>("db_get_card", { id: cardId })
+    const card = await invoke<Card | null>("db_get_card", { id: cardId })
     if (!card) throw new Error("Card not found")
     return {
       id: card.id,
@@ -29,5 +25,5 @@ export function CardDetailPage() {
     }
   }
 
-  return <CardDetail fetchCard={fetchCard} cardId={id} LinkComponent={CardLink} />
+  return <CardDetail fetchCard={fetchCard} cardId={id} />
 }

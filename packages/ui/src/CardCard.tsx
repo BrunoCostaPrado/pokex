@@ -10,19 +10,12 @@ interface CardLike {
   rarity?: string
 }
 
-interface LinkComponentProps {
-  to: string
-  children: React.ReactNode
-  className?: string
-}
-
 interface CardCardProps {
   card: CardLike
-  LinkComponent?: React.ComponentType<LinkComponentProps>
   to?: string
 }
 
-export function CardCard({ card, LinkComponent, to }: CardCardProps) {
+export function CardCard({ card, to }: CardCardProps) {
   const href =
     to ??
     (card.set
@@ -49,21 +42,10 @@ export function CardCard({ card, LinkComponent, to }: CardCardProps) {
     </>
   )
 
-  if (LinkComponent) {
-    return (
-      <LinkComponent
-        to={href}
-        className="block bg-white rounded-lg border border-[var(--color-border)] p-4 hover:shadow-md transition-shadow"
-      >
-        {cardContent}
-      </LinkComponent>
-    )
-  }
-
   return (
     <a
       href={href}
-      className="block bg-white rounded-lg border border-[var(--color-border)] p-4 hover:shadow-md transition-shadow"
+      className="block bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 hover:shadow-md transition-shadow"
     >
       {cardContent}
     </a>

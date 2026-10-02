@@ -20,6 +20,10 @@ out/
 .expo/
 *.local
 
+# Rust
+target/
+apps/desktop-mobile/src-tauri/target/
+
 # Python
 venv/
 .venv/

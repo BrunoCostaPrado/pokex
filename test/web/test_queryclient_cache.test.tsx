@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { render, screen, waitFor } from "@testing-library/react"
+import type { ReactNode } from "react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -11,133 +11,143 @@ const createWrapper = () => {
         gcTime: 0,
       },
     },
-  });
+  })
 
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-};
+  )
+}
 
 describe("React Query Cache", () => {
-  let wrapper: ReturnType<typeof createWrapper>;
+  let wrapper: ReturnType<typeof createWrapper>
 
   beforeEach(() => {
-    wrapper = createWrapper();
-  });
+    wrapper = createWrapper()
+  })
 
   it("caches query results", async () => {
-    let callCount = 0;
+    let callCount = 0
     const fetchData = vi.fn().mockImplementation(async () => {
-      callCount++;
-      return { data: "test" };
-    });
+      callCount++
+      return { data: "test" }
+    })
 
-    const { result } = renderHook(() => useQuery({ queryKey: ["test"], queryFn: fetchData }), { wrapper });
+    const { result } = renderHook(() => useQuery({ queryKey: ["test"], queryFn: fetchData }), {
+      wrapper,
+    })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(callCount).toBe(1);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(callCount).toBe(1)
 
-    const { result: result2 } = renderHook(() => useQuery({ queryKey: ["test"], queryFn: fetchData }), { wrapper });
+    const { result: result2 } = renderHook(
+      () => useQuery({ queryKey: ["test"], queryFn: fetchData }),
+      { wrapper }
+    )
 
-    await waitFor(() => expect(result2.current.isSuccess).toBe(true));
-    expect(callCount).toBe(1);
-  });
+    await waitFor(() => expect(result2.current.isSuccess).toBe(true))
+    expect(callCount).toBe(1)
+  })
 
   it("respects staleTime", async () => {
-    let callCount = 0;
+    let callCount = 0
     const fetchData = vi.fn().mockImplementation(async () => {
-      callCount++;
-      return { data: "test" };
-    });
+      callCount++
+      return { data: "test" }
+    })
 
     const { result } = renderHook(
       () => useQuery({ queryKey: ["test"], queryFn: fetchData, staleTime: 1000 }),
       { wrapper }
-    );
+    )
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(callCount).toBe(1);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(callCount).toBe(1)
 
     const { result: result2 } = renderHook(
       () => useQuery({ queryKey: ["test"], queryFn: fetchData, staleTime: 1000 }),
       { wrapper }
-    );
+    )
 
-    await waitFor(() => expect(result2.current.isSuccess).toBe(true));
-    expect(callCount).toBe(1);
-  });
+    await waitFor(() => expect(result2.current.isSuccess).toBe(true))
+    expect(callCount).toBe(1)
+  })
 
   it("refetches after staleTime expires", async () => {
-    vi.useFakeTimers();
-    let callCount = 0;
+    vi.useFakeTimers()
+    let callCount = 0
     const fetchData = vi.fn().mockImplementation(async () => {
-      callCount++;
-      return { data: "test" };
-    });
+      callCount++
+      return { data: "test" }
+    })
 
     const { result } = renderHook(
       () => useQuery({ queryKey: ["test"], queryFn: fetchData, staleTime: 100 }),
       { wrapper }
-    );
+    )
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(callCount).toBe(1);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(callCount).toBe(1)
 
-    vi.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200)
 
     const { result: result2 } = renderHook(
       () => useQuery({ queryKey: ["test"], queryFn: fetchData, staleTime: 100 }),
       { wrapper }
-    );
+    )
 
-    await waitFor(() => expect(result2.current.isFetching).toBe(true));
-    await waitFor(() => expect(result2.current.isSuccess).toBe(true));
-    expect(callCount).toBe(2);
+    await waitFor(() => expect(result2.current.isFetching).toBe(true))
+    await waitFor(() => expect(result2.current.isSuccess).toBe(true))
+    expect(callCount).toBe(2)
 
-    vi.useRealTimers();
-  });
+    vi.useRealTimers()
+  })
 
   it("cache invalidation with queryClient.invalidateQueries", async () => {
-    let callCount = 0;
+    let callCount = 0
     const fetchData = vi.fn().mockImplementation(async () => {
-      callCount++;
-      return { data: "test" };
-    });
+      callCount++
+      return { data: "test" }
+    })
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0 } },
-    });
+    })
 
-    const { result } = renderHook(
-      () => useQuery({ queryKey: ["test"], queryFn: fetchData }),
-      { wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider> }
-    );
+    const { result } = renderHook(() => useQuery({ queryKey: ["test"], queryFn: fetchData }), {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(callCount).toBe(1);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(callCount).toBe(1)
 
-    await queryClient.invalidateQueries({ queryKey: ["test"] });
+    await queryClient.invalidateQueries({ queryKey: ["test"] })
 
-    await waitFor(() => expect(result.current.isFetching).toBe(true));
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(callCount).toBe(2);
-  });
-});
+    await waitFor(() => expect(result.current.isFetching).toBe(true))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(callCount).toBe(2)
+  })
+})
 
 function renderHook<T>(hook: () => T, options?: { wrapper: ReturnType<typeof createWrapper> }) {
-  let result: T;
+  let result: T
   const TestComponent = () => {
-    result = hook();
-    return null;
-  };
+    result = hook()
+    return null
+  }
 
-  const { unmount } = render(<TestComponent />, { wrapper: options?.wrapper });
+  const { unmount } = render(<TestComponent />, { wrapper: options?.wrapper })
   return {
     result: { current: result },
     unmount,
-  };
+  }
 }
 
-function useQuery(options: { queryKey: unknown[]; queryFn: () => Promise<any>; staleTime?: number }) {
-  return { isSuccess: true, isFetching: false, data: null };
+function useQuery(options: {
+  queryKey: unknown[]
+  queryFn: () => Promise<any>
+  staleTime?: number
+}) {
+  return { isSuccess: true, isFetching: false, data: null }
 }

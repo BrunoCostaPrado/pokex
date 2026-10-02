@@ -1,5 +1,6 @@
+import { ThemeToggle } from "@pokex/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { tauriCommand } from "../hooks/useTauriQuery"
+import { invoke } from "@tauri-apps/api/core"
 import type { Setting, SyncResult, SyncStatus } from "../types/tauri"
 
 export function Settings() {
@@ -7,24 +8,24 @@ export function Settings() {
 
   const { data: settings = [] } = useQuery({
     queryKey: ["settings"],
-    queryFn: () => tauriCommand<Setting[]>("db_settings_get"),
+    queryFn: () => invoke<Setting[]>("db_settings_get"),
   })
 
   const { data: syncStatus } = useQuery({
     queryKey: ["syncStatus"],
-    queryFn: () => tauriCommand<SyncStatus>("db_get_sync_status"),
+    queryFn: () => invoke<SyncStatus>("db_get_sync_status"),
   })
 
   const settingsMap = new Map<string, string>(settings.map(s => [s.key, s.value]))
 
   const updateSetting = useMutation({
     mutationFn: ({ key, value }: { key: string; value: string }) =>
-      tauriCommand<void>("db_settings_set", { key, value }),
+      invoke<void>("db_settings_set", { key, value }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] }),
   })
 
   const syncSets = useMutation({
-    mutationFn: () => tauriCommand<SyncResult>("sync_sets"),
+    mutationFn: () => invoke<SyncResult>("sync_sets"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["syncStatus"] })
       queryClient.invalidateQueries({ queryKey: ["sets"] })
@@ -32,7 +33,7 @@ export function Settings() {
   })
 
   const syncCards = useMutation({
-    mutationFn: () => tauriCommand<SyncResult>("sync_cards"),
+    mutationFn: () => invoke<SyncResult>("sync_cards"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["syncStatus"] })
       queryClient.invalidateQueries({ queryKey: ["cards"] })
@@ -40,7 +41,7 @@ export function Settings() {
   })
 
   const fullSync = useMutation({
-    mutationFn: () => tauriCommand<SyncResult>("full_sync"),
+    mutationFn: () => invoke<SyncResult>("full_sync"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["syncStatus"] })
       queryClient.invalidateQueries({ queryKey: ["sets"] })
@@ -50,11 +51,29 @@ export function Settings() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <ThemeToggle />
+      </div>
+
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-4">Appearance</h2>
+        <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Dark Mode</p>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Toggle between light and dark theme
+              </p>
+            </div>
+            <ThemeToggle />
+          </div>
+        </div>
+      </section>
 
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-4">Database</h2>
-        <div className="bg-white rounded-lg border border-[var(--color-border)] p-4 space-y-4">
+        <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 space-y-4">
           <div>
             <h3 className="font-medium mb-2">Sync Status</h3>
             <div className="grid grid-cols-3 gap-4 text-sm">
@@ -103,7 +122,7 @@ export function Settings() {
 
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-4">App Settings</h2>
-        <div className="bg-white rounded-lg border border-[var(--color-border)] p-4 space-y-4">
+        <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 space-y-4">
           {Array.from(settingsMap.entries()).map(([key, value]) => (
             <div key={key} className="flex items-center justify-between">
               <label className="text-sm" htmlFor={key}>

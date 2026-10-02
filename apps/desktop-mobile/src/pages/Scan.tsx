@@ -1,5 +1,5 @@
 import { Scan } from "@pokex/ui"
-import { tauriCommand } from "../hooks/useTauriQuery"
+import { invoke } from "@tauri-apps/api/core"
 
 interface RecognitionResult {
   count: number
@@ -10,7 +10,7 @@ interface RecognitionResult {
   }>
 }
 
-const recognizeCard = (file: File) => tauriCommand<RecognitionResult>("recognize_card", { file })
+const recognizeCard = (file: File) => invoke<RecognitionResult>("recognize_card", { file })
 
 export function ScanPage() {
   return <Scan recognizeCard={recognizeCard} />

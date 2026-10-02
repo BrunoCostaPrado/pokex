@@ -1,13 +1,14 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from pydantic_settings import BaseSettings
 
 from scraper_app.config import settings
 from scraper_app.models import Base
 from scraper_app.sync import sync_all
-from services.shared.fastapi_factory import create_app
 
 engine = create_async_engine(settings.database_url)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
@@ -57,19 +58,25 @@ async def lifespan(app) -> AsyncGenerator[None, None]:
             pass
 
 
-app = create_app(
+app = FastAPI(
     title="Scraper Service",
     description="Pokemon TCG Data Scraper",
     version="0.1.0",
-    router=None,
     lifespan=lifespan,
-    health_check=True,
 )
 
-# Add health check manually since router is None
-# The health_check endpoint is already added by factory
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/health")
+async def health_check_endpoint():
+    return {"status": "ok", "service": "scraper-service", "version": "0.1.0"}
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8002)

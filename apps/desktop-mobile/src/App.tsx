@@ -1,3 +1,4 @@
+import { ThemeToggle } from "@pokex/ui"
 import { Link, Route, Switch, useLocation } from "wouter"
 import { CardDetailPage } from "./pages/CardDetail"
 import { CollectionPage } from "./pages/Collection"
@@ -17,12 +18,12 @@ function Layout() {
   const [location] = useLocation()
   return (
     <div className="min-h-screen bg-[var(--color-background)]">
-      <header className="bg-white border-b border-[var(--color-border)] px-4 py-3">
+      <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-lg font-bold text-[var(--color-text)]">
             PokéX
           </Link>
-          <nav className="flex gap-4">
+          <nav className="flex items-center gap-4">
             {navItems.map(item => (
               <Link
                 key={item.to}
@@ -36,6 +37,7 @@ function Layout() {
                 {item.label}
               </Link>
             ))}
+            <ThemeToggle />
           </nav>
         </div>
       </header>

@@ -1,14 +1,10 @@
 import { SetDetail } from "@pokex/ui"
-import { Link, useParams } from "wouter"
-import { tauriCommand } from "../hooks/useTauriQuery"
+import { invoke } from "@tauri-apps/api/core"
+import { useParams } from "wouter"
 import type { Card, Set as TauriSet } from "../types/tauri"
 
-function SetLink({ to, children }: { to: string; children: React.ReactNode }) {
-  return <Link href={to}>{children}</Link>
-}
-
 const fetchSet = async (id: string) => {
-  const set = await tauriCommand<TauriSet | null>("db_get_set", { id })
+  const set = await invoke<TauriSet | null>("db_get_set", { id })
   if (!set) throw new Error("Set not found")
   return {
     id: set.id,
@@ -20,12 +16,10 @@ const fetchSet = async (id: string) => {
   }
 }
 const fetchCards = (setId: string) =>
-  tauriCommand<Card[]>("db_get_cards", { set_id: setId, limit: 1000, offset: 0 })
+  invoke<Card[]>("db_get_cards", { set_id: setId, limit: 1000, offset: 0 })
 
 export function SetDetailPage() {
   const params = useParams() as { id: string } | undefined
   const id = params?.id ?? ""
-  return (
-    <SetDetail fetchSet={fetchSet} fetchCards={fetchCards} setId={id} LinkComponent={SetLink} />
-  )
+  return <SetDetail fetchSet={fetchSet} fetchCards={fetchCards} setId={id} />
 }

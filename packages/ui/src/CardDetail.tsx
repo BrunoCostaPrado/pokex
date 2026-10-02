@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { ErrorState, LoadingState } from "./SetsList"
+import { ErrorState, LoadingState } from "."
 
 interface LinkComponentProps {
   to: string
@@ -41,10 +41,9 @@ interface CardData {
 interface CardDetailProps {
   fetchCard: (id: string) => Promise<CardData>
   cardId: string
-  LinkComponent?: React.ComponentType<LinkComponentProps>
 }
 
-export function CardDetail({ fetchCard, cardId, LinkComponent }: CardDetailProps) {
+export function CardDetail({ fetchCard, cardId }: CardDetailProps) {
   const {
     data: card,
     isLoading,
@@ -58,13 +57,11 @@ export function CardDetail({ fetchCard, cardId, LinkComponent }: CardDetailProps
   if (error) return <ErrorState message="Failed to load card details" />
   if (!card) return <ErrorState message="Card not found" />
 
-  const BackLink =
-    LinkComponent ??
-    ((props: LinkComponentProps) => (
-      <a href={props.to} className={props.className}>
-        {props.children}
-      </a>
-    ))
+  const BackLink = (props: LinkComponentProps) => (
+    <a href={props.to} className={props.className}>
+      {props.children}
+    </a>
+  )
 
   return (
     <div>

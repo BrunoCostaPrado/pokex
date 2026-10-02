@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { CardGrid, ErrorState, LoadingState } from "."
+import { CardCard, ErrorState, LoadingState } from "."
 
 interface LinkComponentProps {
   to: string
@@ -35,10 +35,9 @@ interface SetDetailProps {
   fetchSet: (id: string) => Promise<SetData>
   fetchCards: (setId: string) => Promise<CardData[]>
   setId: string
-  LinkComponent?: React.ComponentType<LinkComponentProps>
 }
 
-export function SetDetail({ fetchSet, fetchCards, setId, LinkComponent }: SetDetailProps) {
+export function SetDetail({ fetchSet, fetchCards, setId }: SetDetailProps) {
   const {
     data: set,
     isLoading: setLoading,
@@ -62,13 +61,11 @@ export function SetDetail({ fetchSet, fetchCards, setId, LinkComponent }: SetDet
   if (setError || cardsError) return <ErrorState message="Failed to load set details" />
   if (!set) return <ErrorState message="Set not found" />
 
-  const BackLink =
-    LinkComponent ??
-    ((props: LinkComponentProps) => (
-      <a href={props.to} className={props.className}>
-        {props.children}
-      </a>
-    ))
+  const BackLink = (props: LinkComponentProps) => (
+    <a href={props.to} className={props.className}>
+      {props.children}
+    </a>
+  )
 
   return (
     <div>
@@ -94,7 +91,11 @@ export function SetDetail({ fetchSet, fetchCards, setId, LinkComponent }: SetDet
       </div>
 
       <h2 className="text-xl font-bold mb-4">Cards</h2>
-      <CardGrid cards={cards ?? []} LinkComponent={LinkComponent} />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {cards?.map(card => (
+          <CardCard key={card.id} card={card} />
+        ))}
+      </div>
     </div>
   )
 }

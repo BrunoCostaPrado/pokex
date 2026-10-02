@@ -1,11 +1,7 @@
 import { SetDetail } from "@pokex/ui"
-import { Link, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 
 const BASE = "/api"
-
-function SetLink({ to, children }: { to: string; children: React.ReactNode }) {
-  return <Link to={to}>{children}</Link>
-}
 
 async function fetchSet(id: string) {
   const res = await fetch(`${BASE}/sets/${id}`)
@@ -24,12 +20,5 @@ async function fetchCards(setId: string) {
 
 export default function SetDetailPage() {
   const { id } = useParams<{ id: string }>()
-  return (
-    <SetDetail
-      fetchSet={fetchSet}
-      fetchCards={fetchCards}
-      setId={id ?? ""}
-      LinkComponent={SetLink}
-    />
-  )
+  return <SetDetail fetchSet={fetchSet} fetchCards={fetchCards} setId={id ?? ""} />
 }

@@ -2,9 +2,9 @@ mod api;
 mod db;
 mod sync;
 
-use crate::api::client::ApiClient;
+use api::client::ApiClient;
 use crate::db::commands::*;
-use crate::sync::manager::*;
+use crate::sync::{sync_sets, sync_cards, full_sync, get_sync_status};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use std::sync::Arc;
@@ -14,11 +14,9 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            if let Err(e) = crate::db::init_db(app.handle()) {
-                eprintln!("Failed to initialize database: {}", e);
-            }
+            let db_pool = crate::db::init_db(app.handle()).map_err(|e| format!("Failed to initialize database: {}", e))?;
+            app.manage(db_pool.clone());
 
-            let db_pool = app.state::<crate::db::DbPool>().inner().clone();
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let api_url = get_api_url_from_db(db_pool)

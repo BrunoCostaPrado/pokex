@@ -1,11 +1,7 @@
 import { CardDetail } from "@pokex/ui"
-import { Link, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 
 const BASE = "/api"
-
-function CardLink({ to, children }: { to: string; children: React.ReactNode }) {
-  return <Link to={to}>{children}</Link>
-}
 
 async function fetchCard(id: string) {
   const res = await fetch(`${BASE}/cards/${id}`)
@@ -15,5 +11,5 @@ async function fetchCard(id: string) {
 
 export default function CardDetailPage() {
   const { id } = useParams<{ id: string }>()
-  return <CardDetail fetchCard={fetchCard} cardId={id ?? ""} LinkComponent={CardLink} />
+  return <CardDetail fetchCard={fetchCard} cardId={id ?? ""} />
 }

@@ -21,6 +21,7 @@ src-tauri/*.lock
 # Build output
 dist/
 build/
+*.local
 
 # IDE
 .vscode/
@@ -34,19 +35,9 @@ logs/
 
 # Testing
 coverage/
+.nyc_output/
 
 # Local env
 .env
 .env.local
 .env.*.local
-
-# Documentation
-README.md
-docs/
-
-# Misc
-*.tgz
-.cache/
-*~
-*.tmp
-*.temp

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { CardGrid } from "./CardGrid"
+import { CardCard, ErrorState, LoadingState } from "."
 
 interface SetData {
   id: string
@@ -9,19 +9,14 @@ interface SetData {
   total_cards?: number
 }
 
-interface SetsListProps {
-  fetchSets: (skip?: number, limit?: number) => Promise<SetData[]>
-  LinkComponent?: React.ComponentType<{ to: string; children: React.ReactNode }>
-}
-
-export function SetsList({ fetchSets, LinkComponent }: SetsListProps) {
+export function SetsList() {
   const {
     data: sets,
     isLoading,
     error,
   } = useQuery({
     queryKey: ["sets", 0, 100],
-    queryFn: () => fetchSets(0, 100),
+    queryFn: () => fetch("/api/sets?skip=0&limit=100").then(r => r.json()),
   })
 
   if (isLoading) return <LoadingState message="Loading sets..." />
@@ -30,23 +25,11 @@ export function SetsList({ fetchSets, LinkComponent }: SetsListProps) {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Pokémon TCG Sets</h1>
-      <CardGrid cards={sets ?? []} LinkComponent={LinkComponent} />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {sets?.map((set: SetData) => (
+          <CardCard key={set.id} card={set} />
+        ))}
+      </div>
     </div>
   )
-}
-
-interface LoadingStateProps {
-  message?: string
-}
-
-export function LoadingState({ message = "Loading..." }: LoadingStateProps) {
-  return <div className="text-center py-8 text-[var(--color-text-muted)]">{message}</div>
-}
-
-interface ErrorStateProps {
-  message?: string
-}
-
-export function ErrorState({ message = "Failed to load" }: ErrorStateProps) {
-  return <div className="text-center py-8 text-[var(--color-text-muted)]">{message}</div>
 }

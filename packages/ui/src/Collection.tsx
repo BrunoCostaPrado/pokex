@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { CardGrid } from "./CardGrid"
-import { ErrorState, LoadingState } from "./SetsList"
+import { CardCard, ErrorState, LoadingState } from "."
 
 interface LinkComponentProps {
   to: string
@@ -60,7 +59,11 @@ export function Collection({ fetchCollection, LinkComponent }: CollectionProps) 
           </BrowseLink>
         </div>
       ) : (
-        <CardGrid cards={cards ?? []} LinkComponent={LinkComponent} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {cards?.map(card => (
+            <CardCard key={card.id} card={card} />
+          ))}
+        </div>
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
-from typing import NotRequired, TypedDict
+from pathlib import Path
+from typing import NotRequired, Optional, TypedDict
 
 import httpx
 from sqlalchemy import select
@@ -248,3 +249,16 @@ async def sync_all(http_client: httpx.AsyncClient | None = None, api_key: str | 
     finally:
         if http_client is None:
             await client.aclose()
+
+
+async def scrape_limitless_card_images(card_ids: list[str], out_root: Path) -> dict[str, Optional[Path]]:
+    """Scrape card images from Limitless TCG for training data.
+    
+    Args:
+        card_ids: List of Limitless card IDs (e.g., ["pt", "sv01-123"])
+        out_root: Root directory for saved images
+    Returns:
+        Dict mapping card_id -> saved path (or None if failed)
+    """
+    from scraper_app.sources.limitless import scrape_cards_batch
+    return await scrape_cards_batch(card_ids, out_root)

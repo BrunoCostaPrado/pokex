@@ -16,6 +16,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.12-alpine AS runner
 WORKDIR /app
 
+ARG PORT=8000
+ARG WORKERS=4
+
 # Install runtime dependencies and create user in single layer
 RUN apk add --no-cache ca-certificates \
     && adduser -D -s /bin/bash app
@@ -28,11 +31,10 @@ COPY --chown=app:app data_ingestion_app ./app
 RUN pip install --no-cache-dir gunicorn
 
 USER app
-
-EXPOSE 8000
+EXPOSE ${PORT}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget -q --spider http://localhost:8000/health || exit 1
+    CMD wget -q --spider http://localhost:${PORT}/health || exit 1
 
 # Use gunicorn with workers for production
-CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120", "--keep-alive", "5"]
+CMD ["gunicorn", "app.main:app", "--workers", "${WORKERS}", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:${PORT}", "--timeout", "120", "--keep-alive", "5"]
