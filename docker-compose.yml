@@ -47,8 +47,8 @@ services:
 
   data-ingestion:
     build:
-      context: .
-      dockerfile: services/data-ingestion/Dockerfile
+      context: ./services/data-ingestion
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -97,8 +97,8 @@ services:
 
   recognition:
     build:
-      context: .
-      dockerfile: services/recognition/Dockerfile
+      context: ./services/recognition
+      dockerfile: Dockerfile
     ports:
       - "8001:8001"
     environment:
