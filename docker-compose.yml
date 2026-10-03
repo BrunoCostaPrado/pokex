@@ -110,6 +110,7 @@ services:
       MINIO_SECURE: ${MINIO_SECURE:-"false"}
       MINIO_BUCKET: ${MINIO_BUCKET:-pokemon-cards}
       PYTHONUNBUFFERED: "1"
+      NIM_API_KEY: ${NVIDA}
     depends_on:
       data-ingestion:
         condition: service_started

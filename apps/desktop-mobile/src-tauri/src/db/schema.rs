@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub struct Migration {
     pub version: u32,
     pub description: &'static str,
@@ -5,6 +6,7 @@ pub struct Migration {
     pub kind: MigrationKind,
 }
 
+#[allow(dead_code)]
 pub enum MigrationKind {
     Up,
     Down,

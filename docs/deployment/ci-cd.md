@@ -58,7 +58,7 @@ Needs: `setup`
 | Matrix Entry | Target | Steps |
 |--------------|--------|-------|
 | 1 | `test-web` | pnpm install → playwright install → vitest → build |
-| 2 | `test-desktop` | rust-toolchain → cargo test --lib |
+| 2 | `test-desktop` | rust-toolchain → cargo test --lib (apps/desktop-mobile/src-tauri) |
 
 Web test command:
 ```bash
@@ -154,6 +154,9 @@ act -j build
 
 # Run full workflow (requires secrets)
 act -s GHCR_TOKEN=your_token -s JUSTTCG_API_KEY=your_key
+
+# Run tauri dev locally (from root)
+pnpm tauri dev
 ```
 
 **Known act Limitations:**

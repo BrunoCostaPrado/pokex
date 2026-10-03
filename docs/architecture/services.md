@@ -294,19 +294,18 @@ class Settings(BaseSettings):
 
 ### Shared UI Package
 
-`@pokex/ui` provides 10 components used by both web and desktop-mobile:
+`@pokex/ui` provides 9 components used by both web and desktop-mobile:
 
 | Component | Description |
 |-----------|-------------|
-| `Button` | Variants: primary, secondary, ghost, destructive |
-| `Card` | Set/Card display with image, rarity badge |
-| `Input` | Form input with validation states |
-| `Select` | Dropdown with search |
-| `Modal` | Accessible dialog (Radix-style) |
-| `Toast` | Notification system |
-| `Spinner` | Loading indicators |
-| `Badge` | Rarity, status labels |
-| `Avatar` | User/profile images |
+| `CardCard` | Card display with image, set info, rarity |
+| `CardDetail` | Full card view with prices, images |
+| `Collection` | Grid of collected cards |
+| `Scan` | Camera scan UI |
+| `SetDetail` | Set overview with cards |
+| `SetsList` | Paginated set list |
+| `LoadingState`/`ErrorState`/`EmptyState` | Shared states |
+| `ThemeToggle` | Dark/light mode switch |
 | `Separator` | Visual divider |
 
 ### Vite Configuration

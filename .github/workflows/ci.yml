@@ -113,3 +113,88 @@ jobs:
       - name: Build Docker images (parallel)
         run: |
           docker buildx bake -f docker-bake.hcl
+
+  build-desktop:
+    name: Build Desktop (Linux)
+    runs-on: ubuntu-24.04
+    needs: [test]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install pnpm deps
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: x86_64-unknown-linux-gnu
+      - name: Install GTK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: Build Desktop app
+        run: |
+          cd apps/desktop-mobile
+          pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
+          pnpm run build
+          pnpm run tauri build --target x86_64-unknown-linux-gnu
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-bundles
+          path: apps/desktop-mobile/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/
+          if-no-files-found: warn
+
+  build-android:
+    name: Build Android (3 archs)
+    runs-on: ubuntu-24.04
+    needs: [test]
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [aarch64, x86_64, i686]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install pnpm deps (root)
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
+      - name: Install pnpm deps (desktop-mobile)
+        run: |
+          cd apps/desktop-mobile
+          pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.arch }}-linux-android
+      - name: Set up Android SDK/NDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 35
+          ndk-version: r27c
+      - name: Install GTK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: Build Android app
+        run: |
+          cd apps/desktop-mobile
+          pnpm run tauri android build --target ${{ matrix.arch }}-linux-android
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-bundles-${{ matrix.arch }}
+          path: |
+            apps/desktop-mobile/src-tauri/gen/android/app/build/outputs/bundle/release/app-release.aab
+            apps/desktop-mobile/src-tauri/gen/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: warn

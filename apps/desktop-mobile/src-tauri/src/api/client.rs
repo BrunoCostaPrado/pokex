@@ -99,19 +99,27 @@ impl serde::Serialize for ApiError {
     where
         S: serde::Serializer,
     {
-        use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("ApiError", 2)?;
-        state.serialize_field(
-            "type",
-            match self {
-                ApiError::RequestFailed(_) => "RequestFailed",
-                ApiError::Network(_) => "Network",
-                ApiError::Io(_) => "Io",
-                ApiError::Serialization(_) => "Serialization",
+        #[derive(serde::Serialize)]
+        #[serde(tag = "type")]
+        enum ApiErrorSer<'a> {
+            RequestFailed { message: &'a str },
+            Network { message: String },
+            Io { message: String },
+            Serialization { message: String },
+        }
+        let ser = match self {
+            ApiError::RequestFailed(s) => ApiErrorSer::RequestFailed { message: s },
+            ApiError::Network(e) => ApiErrorSer::Network {
+                message: e.to_string(),
             },
-        )?;
-        state.serialize_field("message", &self.to_string())?;
-        state.end()
+            ApiError::Io(e) => ApiErrorSer::Io {
+                message: e.to_string(),
+            },
+            ApiError::Serialization(e) => ApiErrorSer::Serialization {
+                message: e.to_string(),
+            },
+        };
+        ser.serialize(serializer)
     }
 }
 

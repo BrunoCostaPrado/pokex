@@ -20,6 +20,12 @@ target "recognition" {
   dockerfile = "Dockerfile"
 }
 
+target "recognition-gpu" {
+  context = "./services/recognition"
+  tags = ["pokex-recognition-gpu"]
+  dockerfile = "Dockerfile"
+}
+
 target "scraper" {
   context = "./services/scraper"
   tags = ["pokex-scraper"]

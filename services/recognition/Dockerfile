@@ -1,11 +1,16 @@
-# Build stage
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+# services/recognition/Dockerfile
+# Build stage - use Python slim base (CUDA base only needed for local ONNX GPU)
+FROM python:3.12-slim AS builder
+
 WORKDIR /app
 
-# Install system dependencies for opencv
+# Install system dependencies for opencv and build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ libglib2.0-0 libgl1 libsm6 libxext6 libxrender1 libgomp1 \
     && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install --no-cache-dir uv
 
 # Enable uv cache
 ENV UV_CACHE_DIR=/root/.cache/uv
@@ -17,24 +22,30 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --no-cache --prefix=/install -r pyproject.toml
 
-# Runtime stage
+# Runtime stage - Python slim for production
 FROM python:3.12-slim AS runner
+
 WORKDIR /app
 
 ARG PORT=8001
 ARG WORKERS=2
 
+# Install runtime dependencies for OpenCV, Tesseract
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        libglib2.0-0 libgl1 libsm6 libxext6 libxrender1 libgomp1 tesseract-ocr \
+        libglib2.0-0 libgl1 libsm6 libxext6 libxrender1 libgomp1 \
+        tesseract-ocr \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /bin/bash app
 
+# Copy installed packages from builder
 COPY --from=builder --chown=app:app /install /usr/local
+
+# Copy application code
 COPY --chown=app:app recognition_app ./app
 
 # Install gunicorn for production
-RUN pip install --no-cache-dir gunicorn
+RUN pip3 install --no-cache-dir gunicorn
 
 USER app
 EXPOSE ${PORT}

@@ -142,19 +142,14 @@ Requires local PostgreSQL, Redis, MinIO instances.
 ## Running Desktop App
 
 ```bash
-cd apps/desktop-mobile
-
-# Install deps
-pnpm install
-
-# Development (with hot reload)
+# From repo root (tauri script fixed to run from desktop-mobile workspace)
 pnpm tauri dev
 
 # Build
 pnpm tauri build
 ```
 
-**Note:** First build downloads Rust toolchain and compiles native code (~5-10 min).
+**Note:** First build downloads Rust toolchain and compiles native code (~5-10 min). Dependencies installed via `pnpm install` at root.
 
 ---
 

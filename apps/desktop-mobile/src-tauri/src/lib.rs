@@ -2,11 +2,9 @@ mod api;
 mod db;
 mod sync;
 
-use api::client::ApiClient;
 use crate::db::commands::*;
-use crate::sync::{sync_sets, sync_cards, full_sync, get_sync_status};
-use moka::future::Cache;
-use once_cell::sync::Lazy;
+use crate::sync::{full_sync, get_sync_status, sync_cards, sync_sets};
+use api::client::ApiClient;
 use std::sync::Arc;
 use tauri::Manager;
 
@@ -14,7 +12,8 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            let db_pool = crate::db::init_db(app.handle()).map_err(|e| format!("Failed to initialize database: {}", e))?;
+            let db_pool = crate::db::init_db(app.handle())
+                .map_err(|e| format!("Failed to initialize database: {}", e))?;
             app.manage(db_pool.clone());
 
             let app_handle = app.handle().clone();
@@ -52,20 +51,13 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
-static API_URL_CACHE: Lazy<Cache<String, String>> = Lazy::new(|| {
-    Cache::builder()
-        .max_capacity(1)
-        .time_to_live(std::time::Duration::from_secs(300))
-        .build()
-});
+use std::sync::OnceLock;
+static API_URL: OnceLock<String> = OnceLock::new();
 
 async fn get_api_url_from_db(pool: crate::db::DbPool) -> Option<String> {
-    const CACHE_KEY: &str = "api_url";
-
-    if let Some(cached) = API_URL_CACHE.get(CACHE_KEY).await {
-        return Some(cached);
+    if let Some(url) = API_URL.get() {
+        return Some(url.clone());
     }
-
     let conn = pool.connect().ok()?;
     let mut rows = conn
         .query(
@@ -76,9 +68,7 @@ async fn get_api_url_from_db(pool: crate::db::DbPool) -> Option<String> {
         .ok()?;
     if let Some(row) = rows.next().await.ok()? {
         let value: String = row.get(0).ok()?;
-        API_URL_CACHE
-            .insert(CACHE_KEY.to_string(), value.clone())
-            .await;
+        let _ = API_URL.set(value.clone());
         return Some(value);
     }
     None

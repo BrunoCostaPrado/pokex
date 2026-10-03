@@ -80,7 +80,9 @@ async fn sync_cards_internal(
     let page_size = 100;
 
     loop {
-        let cards = api_client.get_cards(set_id.as_deref(), page_size, page * page_size).await?;
+        let cards = api_client
+            .get_cards(set_id.as_deref(), page_size, page * page_size)
+            .await?;
         if cards.is_empty() {
             break;
         }
@@ -140,7 +142,7 @@ pub async fn full_sync(
 
 #[tauri::command]
 pub async fn get_sync_status(
-    api_client: State<'_, Arc<ApiClient>>,
+    _api_client: State<'_, Arc<ApiClient>>,
     db_pool: State<'_, DbPool>,
 ) -> Result<SyncStatus, SyncError> {
     Ok(db_get_sync_status(db_pool).await?)

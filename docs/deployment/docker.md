@@ -172,7 +172,7 @@ WORKDIR /usr/share/nginx/html
 # Copy built assets
 COPY --from=builder /app/apps/web/dist .
 
-# Copy nginx config
+# Copy nginx config (from root context)
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Non-root user (nginx user exists in nginx:alpine)
@@ -181,6 +181,8 @@ USER nginx
 EXPOSE 3000
 CMD ["nginx", "-g", "daemon off;"]
 ```
+
+**Note:** Build context is repo root (`context = "."` in `docker-bake.hcl`). `apps/web/Dockerfile` paths resolved from root.
 
 ### Nginx Config (`apps/web/nginx.conf`)
 
@@ -390,6 +392,9 @@ target "web" {
   tags = ["pokex-web"]
   dockerfile = "apps/web/Dockerfile"
 }
+# Context = root (".") so COPY apps/web/nginx.conf works.
+# Python service contexts remain per-service directories.
+```
 
 target "data-ingestion" {
   context = "./services/data-ingestion"

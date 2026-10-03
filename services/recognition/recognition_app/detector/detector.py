@@ -225,6 +225,253 @@ class CloudVisionDetector:
         return detections
 
 
+class ONNXDetector:
+    """NVIDIA GPU-accelerated detector using ONNX Runtime with CUDA Execution Provider."""
+
+    def __init__(
+        self,
+        model_path: str | None = None,
+        device: str = "cuda",
+        confidence_threshold: float = 0.5,
+        iou_threshold: float = 0.45,
+    ):
+        from recognition_app.config import settings
+        self.model_path = model_path or getattr(settings, "onnx_model_path", None)
+        self.device = device or getattr(settings, "onnx_device", "cuda")
+        self.confidence_threshold = confidence_threshold or getattr(settings, "onnx_confidence_threshold", 0.5)
+        self.iou_threshold = iou_threshold or getattr(settings, "onnx_iou_threshold", 0.45)
+        self._session = None
+        self._input_name = None
+        self._output_names = None
+        self._class_names = None
+
+        if self.model_path:
+            self._load_model()
+
+    def _load_model(self) -> None:
+        try:
+            import onnxruntime as ort
+
+            providers = []
+            if self.device == "cuda":
+                providers.append(("CUDAExecutionProvider", {"device_id": 0}))
+            providers.append("CPUExecutionProvider")
+
+            self._session = ort.InferenceSession(self.model_path, providers=providers)
+            self._input_name = self._session.get_inputs()[0].name
+            self._output_names = [o.name for o in self._session.get_outputs()]
+
+            # Try to get class names from model metadata
+            metadata = self._session.get_modelmeta().custom_metadata_map
+            if "names" in metadata:
+                import json
+                self._class_names = json.loads(metadata["names"])
+            else:
+                self._class_names = {i: f"class_{i}" for i in range(1000)}  # fallback
+        except Exception:
+            self._session = None
+
+    def _preprocess(self, image: np.ndarray) -> tuple[np.ndarray, float, int, int]:
+        """Preprocess image for YOLOv8 ONNX model (letterbox to 640x640)."""
+        input_shape = (640, 640)
+        h, w = image.shape[:2]
+        scale = min(input_shape[0] / h, input_shape[1] / w)
+        new_w, new_h = int(w * scale), int(h * scale)
+        resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+
+        # Letterbox
+        canvas = np.full((input_shape[0], input_shape[1], 3), 114, dtype=np.uint8)
+        top = (input_shape[0] - new_h) // 2
+        left = (input_shape[1] - new_w) // 2
+        canvas[top:top + new_h, left:left + new_w] = resized
+
+        # Normalize and transpose to CHW
+        canvas = canvas.astype(np.float32) / 255.0
+        canvas = np.transpose(canvas, (2, 0, 1))
+        canvas = np.expand_dims(canvas, axis=0)
+        return canvas, scale, top, left
+
+    def _postprocess(self, outputs: list[np.ndarray], scale: float, top: int, left: int, orig_shape: tuple) -> list[CardDetection]:
+        """Postprocess YOLOv8 outputs: NMS, confidence filtering, bbox scaling."""
+        if not outputs or outputs[0].size == 0:
+            return []
+
+        # YOLOv8 output format: (batch, num_boxes, 84) where 84 = 4 (bbox) + 80 (classes)
+        preds = outputs[0][0]  # (num_boxes, 84)
+        boxes = preds[:, :4]  # cxcywh
+        scores = preds[:, 4:]  # class scores
+
+        # Get max class score and class id
+        class_ids = np.argmax(scores, axis=1)
+        confidences = np.max(scores, axis=1)
+
+        # Filter by confidence
+        mask = confidences >= self.confidence_threshold
+        boxes = boxes[mask]
+        confidences = confidences[mask]
+        class_ids = class_ids[mask]
+
+        if len(boxes) == 0:
+            return []
+
+        # Convert cxcywh to xyxy
+        cx, cy, w, h = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+        x1 = cx - w / 2
+        y1 = cy - h / 2
+        x2 = cx + w / 2
+        y2 = cy + h / 2
+
+        # Scale back to original image size
+        x1 = (x1 - left) / scale
+        y1 = (y1 - top) / scale
+        x2 = (x2 - left) / scale
+        y2 = (y2 - top) / scale
+
+        # Clip to image bounds
+        orig_h, orig_w = orig_shape[:2]
+        x1 = np.clip(x1, 0, orig_w)
+        y1 = np.clip(y1, 0, orig_h)
+        x2 = np.clip(x2, 0, orig_w)
+        y2 = np.clip(y2, 0, orig_h)
+
+        # NMS
+        indices = cv2.dnn.NMSBoxes(
+            np.column_stack([x1, y1, x2 - x1, y2 - y1]).tolist(),
+            confidences.tolist(),
+            self.confidence_threshold,
+            self.iou_threshold,
+        )
+
+        detections: list[CardDetection] = []
+        if len(indices) > 0:
+            for i in indices.flatten():
+                detections.append(CardDetection(
+                    bbox=(float(x1[i]), float(y1[i]), float(x2[i]), float(y2[i])),
+                    confidence=float(confidences[i]),
+                    class_id=int(class_ids[i]),
+                ))
+        return detections
+
+    def detect(self, image: np.ndarray) -> list[CardDetection]:
+        if self._session is None:
+            return []
+
+        orig_shape = image.shape
+        input_tensor, scale, top, left = self._preprocess(image)
+
+        try:
+            outputs = self._session.run(self._output_names, {self._input_name: input_tensor})
+            return self._postprocess(outputs, scale, top, left, orig_shape)
+        except Exception:
+            return []
+
+
+class NIMDetector:
+    """NVIDIA NIM (Inference Microservices) detector for cloud-based inference."""
+
+    def __init__(
+        self,
+        endpoint: str | None = None,
+        model_name: str | None = None,
+        api_key: str | None = None,
+        confidence_threshold: float = 0.5,
+        iou_threshold: float = 0.45,
+        response_parser: callable | None = None,
+    ):
+        from recognition_app.config import settings
+        self.endpoint = endpoint or getattr(settings, "nim_endpoint", "https://integrate.api.nvidia.com/v1")
+        self.model_name = model_name or getattr(settings, "nim_model_name", "yolo_v8")
+        self.api_key = api_key or getattr(settings, "nim_api_key", None)
+        self.confidence_threshold = confidence_threshold or getattr(settings, "onnx_confidence_threshold", 0.5)
+        self.iou_threshold = iou_threshold or getattr(settings, "onnx_iou_threshold", 0.45)
+        self.response_parser = response_parser or self._default_parser
+        self._session = None
+
+        if self.api_key:
+            self._init_session()
+
+    def _init_session(self) -> None:
+        import requests
+        self._session = requests.Session()
+        self._session.headers.update({
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        })
+
+    def _preprocess(self, image: np.ndarray) -> str:
+        """Encode image to base64 for NIM API."""
+        import base64
+        _, encoded = cv2.imencode(".jpg", image)
+        return base64.b64encode(encoded.tobytes()).decode("utf-8")
+
+    def _default_parser(self, response: dict, orig_shape: tuple) -> list[CardDetection]:
+        """Default NIM YOLO response format: {"boxes": [[x1, y1, x2, y2, conf, class_id], ...]}"""
+        detections: list[CardDetection] = []
+        boxes = response.get("boxes", [])
+        if not boxes:
+            return []
+        
+        orig_h, orig_w = orig_shape[:2]
+        
+        for box in boxes:
+            if len(box) >= 6:
+                x1, y1, x2, y2, conf, class_id = box[:6]
+                if conf < self.confidence_threshold:
+                    continue
+                
+                # Assume normalized coords (NIM standard); convert to absolute
+                if x1 <= 1 and y1 <= 1 and x2 <= 1 and y2 <= 1:
+                    x1 *= orig_w
+                    y1 *= orig_h
+                    x2 *= orig_w
+                    y2 *= orig_h
+                
+                x1 = max(0, min(x1, orig_w))
+                y1 = max(0, min(y1, orig_h))
+                x2 = max(0, min(x2, orig_w))
+                y2 = max(0, min(y2, orig_h))
+                
+                detections.append(CardDetection(
+                    bbox=(float(x1), float(y1), float(x2), float(y2)),
+                    confidence=float(conf),
+                    class_id=int(class_id),
+                ))
+        return detections
+
+    def detect(self, image: np.ndarray) -> list[CardDetection]:
+        if self._session is None:
+            return []
+        
+        orig_shape = image.shape
+        image_b64 = self._preprocess(image)
+        
+        payload = {
+            "model": self.model_name,
+            "images": [image_b64],
+            "confidence_threshold": self.confidence_threshold,
+            "iou_threshold": self.iou_threshold,
+        }
+        
+        try:
+            response = self._session.post(
+                f"{self.endpoint}/detect",
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle batch response (first image)
+            if isinstance(result, list) and result:
+                result = result[0]
+            elif isinstance(result, dict) and "results" in result:
+                result = result["results"][0] if result["results"] else {}
+            
+            return self.response_parser(result, orig_shape)
+        except Exception:
+            return []
+
+
 class CompositeDetector:
     """Composite detector: tries edge/template first, falls back to cloud vision."""
 
@@ -253,4 +500,8 @@ def get_detector() -> CardDetector:
         return CloudVisionDetector()
     elif detector_type == "composite":
         return CompositeDetector()
+    elif detector_type == "onnx":
+        return ONNXDetector()
+    elif detector_type == "nim":
+        return NIMDetector()
     return EdgeTemplateDetector()

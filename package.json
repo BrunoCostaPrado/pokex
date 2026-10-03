@@ -10,9 +10,7 @@
     "test": "pnpm --filter web run test",
     "db:generate": "pnpm run db:generate --filter data-ingestion",
     "db:push": "pnpm run db:push --filter data-ingestion",
-    "expo": "pnpm run expo --filter app-mobile",
-    "tauri": "pnpm run tauri --filter desktop",
-    "electron": "pnpm run electron --filter desktop"
+    "tauri": "pnpm --filter desktop-mobile run tauri"
   },
   "devDependencies": {
     "@tanstack/router-cli": "1.167.38",
