@@ -189,19 +189,14 @@ jobs:
         if: env.KEYSTORE_BASE64 != ''
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > apps/desktop-mobile/src-tauri/gen/android/pokex-release.keystore
-      - name: Build Android app
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - name: Build Android app (debug)
         run: |
           cd apps/desktop-mobile
-          pnpm run tauri android build --target ${{ matrix.arch }}
-      - name: Upload Android artifacts
+          pnpm run tauri android build --target ${{ matrix.arch }} --debug
+      - name: Upload Android artifacts (debug)
         uses: actions/upload-artifact@v4
         with:
           name: android-bundles-${{ matrix.arch }}
           path: |
-            apps/desktop-mobile/src-tauri/gen/android/app/build/outputs/bundle/release/app-release.aab
-            apps/desktop-mobile/src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk
+            apps/desktop-mobile/src-tauri/gen/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
