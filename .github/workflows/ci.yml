@@ -196,7 +196,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd apps/desktop-mobile
-          pnpm run tauri android build --target ${{ matrix.arch }}-linux-android
+          pnpm run tauri android build --target ${{ matrix.arch }}
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
