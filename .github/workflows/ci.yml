@@ -180,8 +180,7 @@ jobs:
       - name: Set up Android SDK/NDK
         uses: android-actions/setup-android@v3
         with:
-          api-level: 35
-          ndk-version: r27c
+          packages: platforms;android-35 ndk;27.0.12077973 build-tools;35.0.0
       - name: Install GTK dependencies
         run: |
           sudo apt-get update
