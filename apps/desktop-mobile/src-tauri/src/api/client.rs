@@ -82,45 +82,28 @@ pub struct PriceInfo {
     pub reverse_holo: Option<f64>,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Serialize)]
+#[serde(tag = "type")]
 pub enum ApiError {
     #[error("Request failed: {0}")]
     RequestFailed(String),
     #[error("Network error: {0}")]
+    #[serde(serialize_with = "serialize_error")]
     Network(#[from] reqwest::Error),
     #[error("IO error: {0}")]
+    #[serde(serialize_with = "serialize_error")]
     Io(#[from] std::io::Error),
     #[error("Serialization error: {0}")]
+    #[serde(serialize_with = "serialize_error")]
     Serialization(#[from] serde_json::Error),
 }
 
-impl serde::Serialize for ApiError {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        #[derive(serde::Serialize)]
-        #[serde(tag = "type")]
-        enum ApiErrorSer<'a> {
-            RequestFailed { message: &'a str },
-            Network { message: String },
-            Io { message: String },
-            Serialization { message: String },
-        }
-        let ser = match self {
-            ApiError::RequestFailed(s) => ApiErrorSer::RequestFailed { message: s },
-            ApiError::Network(e) => ApiErrorSer::Network {
-                message: e.to_string(),
-            },
-            ApiError::Io(e) => ApiErrorSer::Io {
-                message: e.to_string(),
-            },
-            ApiError::Serialization(e) => ApiErrorSer::Serialization {
-                message: e.to_string(),
-            },
-        };
-        ser.serialize(serializer)
-    }
+fn serialize_error<S, E>(e: &E, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    E: std::error::Error,
+{
+    serializer.serialize_str(&e.to_string())
 }
 
 impl From<ApiSet> for NewSet {

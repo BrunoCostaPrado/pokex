@@ -16,8 +16,7 @@
       "!**/.github",
       "!**/target",
       "!**/src-tauri",
-      "!apps/web/src/styles/globals.css",
-      "!**/apps/desktop-mobile/src-tauri"
+      "!apps/web/src/styles/globals.css"
     ]
   },
   "formatter": {

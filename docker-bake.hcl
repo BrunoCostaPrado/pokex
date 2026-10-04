@@ -12,22 +12,19 @@ target "data-ingestion" {
   context = "./services/data-ingestion"
   tags = ["pokex-data-ingestion"]
   dockerfile = "Dockerfile"
+  platforms = ["linux/amd64", "linux/arm64"]
 }
 
 target "recognition" {
   context = "./services/recognition"
   tags = ["pokex-recognition"]
   dockerfile = "Dockerfile"
-}
-
-target "recognition-gpu" {
-  context = "./services/recognition"
-  tags = ["pokex-recognition-gpu"]
-  dockerfile = "Dockerfile"
+  platforms = ["linux/amd64"]
 }
 
 target "scraper" {
   context = "./services/scraper"
   tags = ["pokex-scraper"]
   dockerfile = "Dockerfile"
+  platforms = ["linux/amd64", "linux/arm64"]
 }

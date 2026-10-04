@@ -256,6 +256,15 @@ RUN cd apps/desktop-mobile && pnpm tauri build
 
 ```yaml
 # docker-compose.prod.yml
+x-common-env: &common-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  REDIS_URL: redis://redis:6379
+  MINIO_ENDPOINT: minio:9000
+  MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+  MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+  MINIO_SECURE: "false"
+  MINIO_BUCKET: pokemon-cards
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -304,18 +313,14 @@ services:
         limits:
           memory: 512M
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET: pokemon-cards
+      <<: *common-env
+      IMAGE_STORAGE_PATH: /app/images
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   recognition:
@@ -326,22 +331,25 @@ services:
         limits:
           memory: 2G
     environment:
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET: pokemon-cards
+      <<: *common-env
+      PYTHONUNBUFFERED: "1"
+      NIM_API_KEY: ${NVIDA}
     depends_on:
       minio:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      data-ingestion:
+        condition: service_started
 
   scraper:
     image: ghcr.io/your-org/pokex-scraper:latest
     deploy:
       replicas: 1
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379
-      MINIO_ENDPOINT: minio:9000
+      <<: *common-env
       DATA_API_URL: http://data-ingestion:8000
       JUSTTCG_API_KEY: ${JUSTTCG_API_KEY}
     depends_on:

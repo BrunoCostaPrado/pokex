@@ -2,43 +2,36 @@ use crate::api::client::ApiClient;
 use crate::db::commands::{db_get_sync_status, db_upsert_card, db_upsert_set};
 use crate::db::models::SyncStatus;
 use crate::db::DbPool;
+use serde::Serialize;
 use std::sync::Arc;
 use tauri::State;
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Serialize)]
 pub struct SyncResult {
     pub sets_synced: u32,
     pub cards_synced: u32,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Serialize)]
+#[serde(tag = "type")]
 pub enum SyncError {
     #[error("API error: {0}")]
+    #[serde(serialize_with = "serialize_error")]
     Api(#[from] crate::api::client::ApiError),
     #[error("Database error: {0}")]
+    #[serde(serialize_with = "serialize_error")]
     Database(#[from] crate::db::commands::DbError),
     #[error("Database error: {0}")]
+    #[serde(serialize_with = "serialize_error")]
     Libsql(#[from] libsql::Error),
 }
 
-impl serde::Serialize for SyncError {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("SyncError", 2)?;
-        state.serialize_field(
-            "type",
-            match self {
-                SyncError::Api(_) => "Api",
-                SyncError::Database(_) => "Database",
-                SyncError::Libsql(_) => "Libsql",
-            },
-        )?;
-        state.serialize_field("message", &self.to_string())?;
-        state.end()
-    }
+fn serialize_error<S, E>(e: &E, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    E: std::error::Error,
+{
+    serializer.serialize_str(&e.to_string())
 }
 
 async fn sync_sets_internal(

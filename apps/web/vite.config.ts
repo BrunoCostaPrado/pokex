@@ -6,7 +6,7 @@ import { defineConfig } from "vitest/config"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(_mode => ({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

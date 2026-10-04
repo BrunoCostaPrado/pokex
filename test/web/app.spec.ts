@@ -34,7 +34,7 @@ test.describe("Cache Headers E2E", () => {
     // Mock data-ingestion API endpoints
     await page.route("**/api/v1/health*", async route => {
       const request = route.request()
-      const ifNoneMatch = request.headers()["if-none-match"] || request.headers()["If-None-Match"]
+      const ifNoneMatch = request.headers()["if-none-match"] || request.headers()["if-none-match"]
       if (ifNoneMatch === MOCK_ETAG) {
         await route.fulfill({ status: 304, headers: { ETag: MOCK_ETAG } })
         return
@@ -45,7 +45,11 @@ test.describe("Cache Headers E2E", () => {
           "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
           ETag: MOCK_ETAG,
         },
-        body: JSON.stringify({ status: "ok", service: "data-ingestion", version: "0.1.0" }),
+        body: JSON.stringify({
+          status: "ok",
+          service: "data-ingestion",
+          version: "0.1.0",
+        }),
       })
     })
 
@@ -76,14 +80,14 @@ test.describe("Cache Headers E2E", () => {
     const response = await page.goto("/api/v1/health")
     expect(response?.status()).toBe(200)
     expect(response?.headers()["cache-control"]).toContain("public, max-age=60")
-    expect(response?.headers()["etag"]).toBe(MOCK_ETAG)
+    expect(response?.headers().ETag).toBe(MOCK_ETAG)
   })
 
   test("ETag validation returns 304", async ({ page }) => {
     // First request gets ETag
     const response1 = await page.goto("/api/v1/health")
     expect(response1?.status()).toBe(200)
-    const etag = response1?.headers()["etag"]
+    const etag = response1?.headers().etag
     expect(etag).toBe(MOCK_ETAG)
 
     // Second request with If-None-Match returns 304 - use fetch from page context
@@ -91,7 +95,10 @@ test.describe("Cache Headers E2E", () => {
       const res = await fetch("/api/v1/health", {
         headers: { "If-None-Match": etag },
       })
-      return { status: res.status, headers: Object.fromEntries(res.headers.entries()) }
+      return {
+        status: res.status,
+        headers: Object.fromEntries(res.headers.entries()),
+      }
     }, etag)
     expect(response2.status).toBe(304)
     expect(response2.headers.etag).toBe(MOCK_ETAG)
@@ -104,7 +111,10 @@ test.describe("Cache Headers E2E", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: "test", name: "Test Set" }),
       })
-      return { status: res.status, headers: Object.fromEntries(res.headers.entries()) }
+      return {
+        status: res.status,
+        headers: Object.fromEntries(res.headers.entries()),
+      }
     })
     expect(response.status).toBe(422)
     expect(response.headers["cache-control"]).toBeUndefined()
@@ -113,7 +123,10 @@ test.describe("Cache Headers E2E", () => {
   test("GET error response has no cache headers", async ({ page }) => {
     const response = await page.evaluate(async () => {
       const res = await fetch("/api/v1/sets/nonexistent")
-      return { status: res.status, headers: Object.fromEntries(res.headers.entries()) }
+      return {
+        status: res.status,
+        headers: Object.fromEntries(res.headers.entries()),
+      }
     })
     expect(response.status).toBe(404)
     expect(response.headers["cache-control"]).toBeUndefined()

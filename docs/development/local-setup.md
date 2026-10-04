@@ -59,6 +59,9 @@ MINIO_BUCKET=pokemon-cards
 NEXT_PUBLIC_RECOGNITION_URL=http://localhost:8001
 EXPO_PUBLIC_API_URL=http://localhost:8000
 EXPO_PUBLIC_RECOGNITION_URL=http://localhost:8001
+
+# NVIDIA NIM Cloud Recognition (optional)
+NVIDA=your_nvidia_nim_api_key_here
 ```
 
 ### Service-Specific `.env` (Optional)
@@ -145,11 +148,46 @@ Requires local PostgreSQL, Redis, MinIO instances.
 # From repo root (tauri script fixed to run from desktop-mobile workspace)
 pnpm tauri dev
 
-# Build
+# Build desktop (Linux/Windows/macOS)
 pnpm tauri build
+
+# Build Android (requires Android SDK/NDK setup)
+pnpm tauri android build
 ```
 
 **Note:** First build downloads Rust toolchain and compiles native code (~5-10 min). Dependencies installed via `pnpm install` at root.
+
+### Android Build Prerequisites
+
+```bash
+# Install Android SDK (via Android Studio or command line)
+# Set ANDROID_HOME and add to PATH:
+#   export ANDROID_HOME=$HOME/Android/Sdk
+#   export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin
+
+# Install NDK (r27c) and API 35 via SDK Manager
+# sdkmanager "platforms;android-35" "ndk;27.0.12077973"
+
+# Add Rust Android targets
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+```
+
+#### Keystore Setup (Required for Installable APK)
+
+```bash
+# Generate release keystore (run once)
+keytool -genkey -v -keystore pokex-release.keystore -alias pokex -keyalg RSA -keysize 2048 -validity 10000
+
+# Copy to Tauri Android gen directory
+cp pokex-release.keystore apps/desktop-mobile/src-tauri/gen/android/
+
+# Set environment variables for signing
+export KEYSTORE_PASSWORD="your_keystore_password"
+export KEY_ALIAS="pokex"
+export KEY_PASSWORD="your_key_password"
+```
+
+**Note:** Without a keystore, the build produces an unsigned APK (`app-release-unsigned.apk`) which cannot be installed on devices. The Gradle config auto-detects the keystore at `gen/android/pokex-release.keystore` and signs when env vars are set.
 
 ---
 

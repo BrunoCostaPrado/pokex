@@ -9,16 +9,16 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push/PR to `m
 │   Push/PR   │
 └──────┬──────┘
        ▼
-┌─────────────┐     ┌──────────────┐     ┌───────────┐
-│   Setup     │────►│    Test      │────►│  Build    │
-│  & Cache    │     │  (Matrix)    │     │ & Docker  │
-└─────────────┘     └──────────────┘     └───────────┘
+┌─────────────┐     ┌──────────────┐     ┌─────────────────────┐
+│   Setup     │────►│    Test      │────►│  Build & Deploy     │
+│  & Cache    │     │  (Matrix)    │     │ (Matrix)            │
+└─────────────┘     └──────────────┘     └─────────────────────┘
       │                   │                   │
       ▼                   ▼                   ▼
-- Checkout            - Web (Vitest)         - Docker images
-- pnpm/uv/cargo       - Desktop (cargo)      - Push to GHCR
-- Cache deps                                    - Multi-platform
-- Install Playwright                            (main branch only)
+- Checkout            - Web (Vitest)         - Build Web Docker
+- pnpm/uv/cargo       - Desktop (cargo)      - Build Desktop (Linux)
+- Cache deps                                    - Build Android (3 archs)
+- Install Playwright                            - Push to GHCR (main only)
 ```
 
 ---
@@ -77,12 +77,20 @@ Each matrix entry restores relevant cache from `setup` outputs.
 
 ---
 
-### 3. Build & Docker (`build`)
+### 3. Build & Docker (Matrix)
 
-Runs: `ubuntu-latest`  
+Runs: `ubuntu-latest` (parallel, `fail-fast: false`)  
 Needs: `[test]`  
 Condition: `github.ref == 'refs/heads/main'` (only on main branch)
 
+Matrix entries:
+| Matrix Entry | Target | Description |
+|--------------|--------|-------------|
+| 1 | `build-web` | Docker images via `docker buildx bake` |
+| 2 | `build-desktop` | Tauri Linux bundles (AppImage, DEB, RPM) |
+| 3 | `build-android` | Tauri Android AAB/APK (aarch64, x86_64, i686) |
+
+Build-web steps:
 ```yaml
 steps:
   - Checkout
@@ -91,7 +99,30 @@ steps:
   - docker buildx bake -f docker-bake.hcl
 ```
 
-Current config builds locally only. For GHCR push, add:
+Build-desktop steps:
+```yaml
+steps:
+  - Checkout
+  - Install Rust toolchain (stable)
+  - Install Node/pnpm
+  - Restore cargo cache
+  - cd apps/desktop-mobile && pnpm tauri build
+  - Upload desktop-bundles artifact
+```
+
+Build-android steps:
+```yaml
+steps:
+  - Checkout
+  - android-actions/setup-android@v3 (API 35, NDK r27c)
+  - Install Rust toolchain + Android targets (aarch64, x86_64, i686)
+  - Install Node/pnpm
+  - Restore cargo cache
+  - cd apps/desktop-mobile && pnpm tauri android build
+  - Upload signed AAB + unsigned APKs per architecture
+```
+
+For GHCR push (build-web only), add:
 ```yaml
   - name: Login to GHCR
     uses: docker/login-action@v3

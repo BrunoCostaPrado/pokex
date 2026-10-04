@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 
 describe("Cache-Control Headers", () => {
   it("parses public cache directive", () => {

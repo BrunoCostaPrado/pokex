@@ -24,13 +24,34 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+
+    // Signing configuration for release builds
+    // Create keystore: keytool -genkey -v -keystore pokex-release.keystore -alias pokex -keyalg RSA -keysize 2048 -validity 10000
+    // Set env vars: KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+    val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+    val keyAliasValue = System.getenv("KEY_ALIAS") ?: "pokex"
+    val keyPasswordValue = System.getenv("KEY_PASSWORD") ?: ""
+    val keystorePath = file("../pokex-release.keystore")
+
+    if (keystorePath.exists() && keystorePassword.isNotEmpty()) {
+        signingConfigs {
+            create("release") {
+                storeFile = keystorePath
+                storePassword = keystorePassword
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
+            }
+        }
+    }
+
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false
-            packaging {                jniLibs.keepDebugSymbols.add("*/arm64-v8a/*.so")
+            packaging {
+                jniLibs.keepDebugSymbols.add("*/arm64-v8a/*.so")
                 jniLibs.keepDebugSymbols.add("*/armeabi-v7a/*.so")
                 jniLibs.keepDebugSymbols.add("*/x86/*.so")
                 jniLibs.keepDebugSymbols.add("*/x86_64/*.so")
@@ -43,6 +64,9 @@ android {
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
                     .toList().toTypedArray()
             )
+            if (keystorePath.exists() && keystorePassword.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     kotlinOptions {
